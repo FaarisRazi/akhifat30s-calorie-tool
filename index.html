@@ -81,8 +81,11 @@
     50%      { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px rgba(0, 0, 0, 0.35), 0 0 48px rgba(245, 197, 24, 0.58); }
   }
 
+  @keyframes mic-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+  .mic-listening { animation: mic-pulse 1.2s ease-in-out infinite; }
+
   @media (prefers-reduced-motion: reduce) {
-    .ambient-bg, .btn-cta-pulse { animation: none; }
+    .ambient-bg, .btn-cta-pulse, .mic-listening { animation: none; }
   }
 </style>
 </head>
@@ -123,9 +126,28 @@
             @paste="handlePaste"
             rows="2"
             placeholder="apple 16, chicken breast 110, rice 180, Almarai milk 200"
-            class="w-full resize-none rounded-xl bg-surface border-2 border-default focus-ring text-text-primary placeholder-text-secondary/60 px-5 py-4 text-base transition-all"
+            class="w-full resize-none rounded-xl bg-surface border-2 border-default focus-ring text-text-primary placeholder-text-secondary/60 px-5 py-4 pr-14 text-base transition-all"
           ></textarea>
+          <button
+            x-show="micSupported"
+            x-cloak
+            @click="toggleVoice()"
+            :aria-label="isListening ? 'Stop voice input' : 'Start voice input'"
+            class="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full transition-all focus-ring"
+            :class="isListening ? 'bg-warn text-white mic-listening' : 'text-accent hover:bg-accent/10'"
+          >
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="2" width="6" height="12" rx="3"/>
+              <path d="M5 10a7 7 0 0 0 14 0"/>
+              <path d="M12 19v3"/>
+              <path d="M8 22h8"/>
+            </svg>
+          </button>
         </div>
+        <p x-show="isListening" x-cloak class="mt-2 text-xs text-warn flex items-center justify-center gap-1.5">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-warn skel"></span>
+          Listening... speak your ingredients
+        </p>
         <p class="mt-2 text-xs text-text-secondary text-left px-1">
           Numbers = grams. Liquids = ml. No number? We use 100g as standard.
         </p>
@@ -322,12 +344,12 @@
               <tr class="border-t border-default" :class="idx % 2 ? 'bg-surface' : 'bg-accent/5'">
                 <td class="px-4 py-3" x-text="row.feature"></td>
                 <td class="px-4 py-3 text-center">
-                  <svg x-show="row.free" viewBox="0 0 20 20" class="inline w-4 h-4 text-text-primary" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 6"/></svg>
-                  <svg x-show="!row.free" viewBox="0 0 20 20" class="inline w-4 h-4 text-text-secondary/40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
+                  <svg x-show="row.free" viewBox="0 0 20 20" class="inline w-4 h-4 text-success" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 6"/></svg>
+                  <svg x-show="!row.free" viewBox="0 0 20 20" class="inline w-4 h-4 text-warn" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
                 </td>
                 <td class="px-4 py-3 text-center">
-                  <svg x-show="row.premium" viewBox="0 0 20 20" class="inline w-4 h-4 text-accent" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 6"/></svg>
-                  <svg x-show="!row.premium" viewBox="0 0 20 20" class="inline w-4 h-4 text-text-secondary/40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
+                  <svg x-show="row.premium" viewBox="0 0 20 20" class="inline w-4 h-4 text-success" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 6"/></svg>
+                  <svg x-show="!row.premium" viewBox="0 0 20 20" class="inline w-4 h-4 text-warn" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
                 </td>
               </tr>
             </template>
@@ -371,8 +393,57 @@ function calorieTool() {
       { feature: '30-week progress dashboard', free: false, premium: true },
       { feature: 'Pre-loaded UAE & South Asian meals', free: false, premium: true },
     ],
+    micSupported: false,
+    isListening: false,
+    recognition: null,
+    voiceBaseText: '',
+    voiceFinalText: '',
 
-    init() {},
+    init() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return;
+
+      this.micSupported = true;
+      this.recognition = new SR();
+      this.recognition.continuous = true;
+      this.recognition.interimResults = true;
+      this.recognition.lang = navigator.language || 'en-US';
+
+      this.recognition.onresult = (event) => {
+        let interimText = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            this.voiceFinalText += transcript + ' ';
+          } else {
+            interimText += transcript;
+          }
+        }
+        this.rawInput = (this.voiceBaseText + this.voiceFinalText + interimText).trim();
+      };
+
+      this.recognition.onend = () => { this.isListening = false; };
+      this.recognition.onerror = (e) => {
+        console.error('Speech recognition error:', e.error);
+        this.isListening = false;
+      };
+    },
+
+    toggleVoice() {
+      if (!this.recognition) return;
+      if (this.isListening) {
+        this.recognition.stop();
+        return;
+      }
+      this.voiceBaseText = this.rawInput.trim() ? this.rawInput.trim() + ', ' : '';
+      this.voiceFinalText = '';
+      this.isListening = true;
+      try {
+        this.recognition.start();
+      } catch (err) {
+        this.isListening = false;
+      }
+    },
 
     handlePaste(e) {
       setTimeout(() => this.calculate(), 0);
