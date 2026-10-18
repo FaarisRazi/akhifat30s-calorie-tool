@@ -101,6 +101,7 @@
       </div>
       <nav class="flex items-center gap-6 text-sm font-medium">
         <a href="#tool" class="text-text-primary hover:text-accent transition-colors">Tool</a>
+        <button @click="pricingOpen = true" class="text-text-primary hover:text-accent transition-colors focus-ring rounded">Pricing</button>
         <a href="#" class="text-text-primary hover:text-accent transition-colors">Get the Ebook</a>
       </nav>
     </div>
@@ -271,6 +272,72 @@
     </div>
   </footer>
 
+  <!-- PRICING MODAL -->
+  <div
+    x-show="pricingOpen"
+    x-cloak
+    @keydown.escape.window="pricingOpen = false"
+    class="fixed inset-0 z-[60] flex items-center justify-center p-4"
+  >
+    <div
+      x-show="pricingOpen"
+      x-transition.opacity
+      @click="pricingOpen = false"
+      class="absolute inset-0 bg-bg/80 backdrop-blur-sm"
+    ></div>
+
+    <div
+      x-show="pricingOpen"
+      x-transition.opacity.scale.95
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pricing-title"
+      class="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl bg-surface border border-default p-6 sm:p-8"
+    >
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="pricing-title" class="text-xl sm:text-2xl font-bold tracking-tight">Free vs Premium</h2>
+          <p class="mt-1 text-sm text-text-secondary">What you get today, and what the ebook unlocks.</p>
+        </div>
+        <button
+          @click="pricingOpen = false"
+          aria-label="Close pricing"
+          class="shrink-0 text-text-secondary hover:text-text-primary transition-colors focus-ring rounded px-2 py-1 text-sm"
+        >Close</button>
+      </div>
+
+      <div class="mt-6 overflow-x-auto rounded-xl border border-default">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-accent/10 text-accent text-xs uppercase tracking-wide">
+              <th class="text-left font-semibold px-4 py-3">Feature</th>
+              <th class="text-center font-semibold px-4 py-3">Free</th>
+              <th class="text-center font-semibold px-4 py-3">Premium</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="(row, idx) in pricingRows" :key="idx">
+              <tr class="border-t border-default" :class="idx % 2 ? 'bg-surface' : 'bg-accent/5'">
+                <td class="px-4 py-3" x-text="row.feature"></td>
+                <td class="px-4 py-3 text-center" :class="row.free ? 'text-text-primary' : 'text-text-secondary/50'" x-text="row.free ? 'Included' : '—'"></td>
+                <td class="px-4 py-3 text-center" :class="row.premium ? 'text-accent font-semibold' : 'text-text-secondary/50'" x-text="row.premium ? 'Included' : '—'"></td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-5 text-sm text-text-secondary space-y-2">
+        <p>Ebook readers get a 30-week premium access code included with their purchase. After 30 weeks, stay on the free tier or continue on premium.</p>
+        <p class="text-text-secondary/70">Standalone premium (no ebook) is planned at $4.99/month or $29/year once the 30-week window launches — not available yet.</p>
+      </div>
+
+      <a href="#" class="btn-cta inline-block mt-6 px-6 py-3 rounded-xl bg-accent hover:bg-accent-hover text-bg font-semibold text-sm transition-colors focus-ring">
+        Get the Ebook
+      </a>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -283,6 +350,19 @@ function calorieTool() {
     showResults: false,
     copied: false,
     skeletonCount: 3,
+    pricingOpen: false,
+    pricingRows: [
+      { feature: 'Paste and calculate', free: true, premium: true },
+      { feature: 'Copy table', free: true, premium: true },
+      { feature: '100g default fallback', free: true, premium: true },
+      { feature: 'Claude / API access', free: true, premium: true },
+      { feature: 'Saved meal history', free: false, premium: true },
+      { feature: 'Custom product database', free: false, premium: true },
+      { feature: 'Nutrition label photo upload', free: false, premium: true },
+      { feature: 'Ramadan mode', free: false, premium: true },
+      { feature: '30-week progress dashboard', free: false, premium: true },
+      { feature: 'Pre-loaded UAE & South Asian meals', free: false, premium: true },
+    ],
 
     init() {},
 
