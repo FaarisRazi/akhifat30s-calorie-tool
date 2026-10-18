@@ -45,7 +45,7 @@
   .fallback-row { background-color: rgba(239, 68, 68, 0.08); }
   ::selection { background-color: #F5C518; color: #0D0F1A; }
   .focus-ring:focus { outline: none; border-color: rgba(245, 197, 24, 0.5); box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.15); }
-  .hero-fade { background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(245, 197, 24, 0.08), transparent); }
+  .hero-fade { background: radial-gradient(ellipse 80% 55% at 50% -10%, rgba(245, 197, 24, 0.16), transparent 75%); }
   @keyframes pulse-skel { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
   .skel { animation: pulse-skel 1.4s ease-in-out infinite; }
   [x-cloak] { display: none !important; }
@@ -56,15 +56,15 @@
     z-index: 0;
     pointer-events: none;
     background:
-      radial-gradient(55% 45% at 18% 12%, rgba(245, 197, 24, 0.12), transparent 60%),
-      radial-gradient(50% 40% at 85% 70%, rgba(245, 197, 24, 0.08), transparent 65%);
+      radial-gradient(55% 45% at 18% 12%, rgba(245, 197, 24, 0.20), transparent 68%),
+      radial-gradient(50% 40% at 85% 70%, rgba(245, 197, 24, 0.14), transparent 70%);
     background-size: 160% 160%, 160% 160%;
-    filter: blur(60px);
-    animation: ambient-drift 28s ease-in-out infinite alternate;
+    filter: blur(55px);
+    animation: ambient-drift 24s ease-in-out infinite alternate;
   }
   @keyframes ambient-drift {
     0%   { background-position: 0% 0%, 100% 100%; }
-    100% { background-position: 18% 14%, 82% 86%; }
+    100% { background-position: 26% 20%, 74% 80%; }
   }
 
   .text-glow { text-shadow: 0 0 20px rgba(245, 197, 24, 0.35), 0 0 48px rgba(245, 197, 24, 0.15); }
@@ -140,7 +140,7 @@
       </div>
 
       <p class="mt-6 text-sm text-text-secondary">
-        Used by AkhiFat30s ebook readers — 29.5kg lost in 30 weeks with this system
+        Faaris manually logged every gram on a calorie app with a kitchen scale to lose 30kg in 30 weeks. This tool does that part for you.
       </p>
 
       <!-- RESULTS -->
@@ -237,19 +237,21 @@
   </section>
 
   <!--
-    AD SLOT (Google AdSense) — placeholder.
+    AD SLOT (Google AdSense) — not live yet, hidden until there's a real ad to show
+    (an empty "Ad space" placeholder reads as an unfinished site to new visitors).
     Once you have an AdSense publisher ID:
     1. Add this once in <head>, before </head>:
        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID" crossorigin="anonymous"></script>
-    2. Replace this div with your ad unit snippet from the AdSense dashboard
+    2. Uncomment the section below and replace its contents with your ad unit snippet from the AdSense dashboard
        (it will look like <ins class="adsbygoogle" data-ad-client="ca-pub-..." data-ad-slot="..." ...></ins> + a small inline script).
     3. In AdSense → Settings → Blocking controls, block "Gambling", "Dating", "Alcohol" categories to keep ad content halal-appropriate.
-  -->
+
   <section class="px-5 py-10">
     <div class="max-w-4xl mx-auto text-center text-xs text-text-secondary/60">
       Ad space
     </div>
   </section>
+  -->
 
   <!-- EBOOK CTA -->
   <section class="px-5 py-16">
@@ -268,7 +270,7 @@
   <footer class="px-5 py-8 border-t border-default">
     <div class="max-w-5xl mx-auto text-center text-xs text-text-secondary space-y-1">
       <p>Food data from Open Food Facts (openfoodfacts.org) — Open Database License</p>
-      <p>Built by AkhiFat30s — 29.5kg lost in 30 weeks</p>
+      <p>Built by AkhiFat30s</p>
     </div>
   </footer>
 
@@ -319,8 +321,14 @@
             <template x-for="(row, idx) in pricingRows" :key="idx">
               <tr class="border-t border-default" :class="idx % 2 ? 'bg-surface' : 'bg-accent/5'">
                 <td class="px-4 py-3" x-text="row.feature"></td>
-                <td class="px-4 py-3 text-center" :class="row.free ? 'text-text-primary' : 'text-text-secondary/50'" x-text="row.free ? 'Included' : '—'"></td>
-                <td class="px-4 py-3 text-center" :class="row.premium ? 'text-accent font-semibold' : 'text-text-secondary/50'" x-text="row.premium ? 'Included' : '—'"></td>
+                <td class="px-4 py-3 text-center">
+                  <svg x-show="row.free" viewBox="0 0 20 20" class="inline w-4 h-4 text-text-primary" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 6"/></svg>
+                  <svg x-show="!row.free" viewBox="0 0 20 20" class="inline w-4 h-4 text-text-secondary/40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
+                </td>
+                <td class="px-4 py-3 text-center">
+                  <svg x-show="row.premium" viewBox="0 0 20 20" class="inline w-4 h-4 text-accent" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 6"/></svg>
+                  <svg x-show="!row.premium" viewBox="0 0 20 20" class="inline w-4 h-4 text-text-secondary/40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
+                </td>
               </tr>
             </template>
           </tbody>
