@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AkhiFat30s Calorie Tool — Know your calories in seconds</title>
+<meta name="description" content="Paste your ingredients and grams, get a full macro breakdown instantly. Free calorie and macro calculator from AkhiFat30s — no account, no app.">
+<meta name="theme-color" content="#0D0F1A">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AkhiFat30s Calorie Tool — Know your calories in seconds">
+<meta property="og:description" content="Paste your ingredients and grams, get a full macro breakdown instantly. Free calorie and macro calculator from AkhiFat30s.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="AkhiFat30s Calorie Tool">
+<meta name="twitter:description" content="Paste your ingredients and grams, get a full macro breakdown instantly.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          bg: '#0D0F1A',
+          surface: '#13162A',
+          accent: '#F5C518',
+          'accent-hover': '#E0B010',
+          'text-primary': '#F0EDE8',
+          'text-secondary': '#8B8FA8',
+          success: '#22C55E',
+          warn: '#EF4444',
+        },
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+        },
+      },
+    },
+  }
+</script>
+<style>
+  body { background-color: #0D0F1A; color: #F0EDE8; }
+  .border-default { border-color: rgba(245, 197, 24, 0.12); }
+  .border-active { border-color: rgba(245, 197, 24, 0.5); }
+  .fallback-row { background-color: rgba(239, 68, 68, 0.08); }
+  ::selection { background-color: #F5C518; color: #0D0F1A; }
+  .focus-ring:focus { outline: none; border-color: rgba(245, 197, 24, 0.5); box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.15); }
+  .hero-fade { background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(245, 197, 24, 0.08), transparent); }
+  @keyframes pulse-skel { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+  .skel { animation: pulse-skel 1.4s ease-in-out infinite; }
+  [x-cloak] { display: none !important; }
+
+  .ambient-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(55% 45% at 18% 12%, rgba(245, 197, 24, 0.12), transparent 60%),
+      radial-gradient(50% 40% at 85% 70%, rgba(245, 197, 24, 0.08), transparent 65%);
+    background-size: 160% 160%, 160% 160%;
+    filter: blur(60px);
+    animation: ambient-drift 28s ease-in-out infinite alternate;
+  }
+  @keyframes ambient-drift {
+    0%   { background-position: 0% 0%, 100% 100%; }
+    100% { background-position: 18% 14%, 82% 86%; }
+  }
+
+  .text-glow { text-shadow: 0 0 20px rgba(245, 197, 24, 0.35), 0 0 48px rgba(245, 197, 24, 0.15); }
+
+  .btn-cta {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 20px rgba(0, 0, 0, 0.25), 0 0 28px rgba(245, 197, 24, 0.28);
+    transition: box-shadow 0.2s ease, background-color 0.2s ease;
+  }
+  .btn-cta:hover { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.3), 0 0 38px rgba(245, 197, 24, 0.42); }
+
+  .btn-cta-pulse { animation: cta-breathe 3.2s ease-in-out infinite; }
+  @keyframes cta-breathe {
+    0%, 100% { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.3), 0 0 26px rgba(245, 197, 24, 0.3); }
+    50%      { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px rgba(0, 0, 0, 0.35), 0 0 48px rgba(245, 197, 24, 0.58); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ambient-bg, .btn-cta-pulse { animation: none; }
+  }
+</style>
+</head>
+<body class="font-sans antialiased relative">
+
+<div class="ambient-bg"></div>
+
+<div x-data="calorieTool()" x-init="init()" class="relative z-10">
+
+  <!-- HEADER -->
+  <header class="sticky top-0 z-50 backdrop-blur bg-surface/80 border-b border-default">
+    <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
+      <div>
+        <div class="text-lg font-bold text-accent tracking-tight text-glow">AkhiFat30s</div>
+        <div class="text-xs text-text-secondary hidden sm:block">Track what you eat. Lose what you don't need.</div>
+      </div>
+      <nav class="flex items-center gap-6 text-sm font-medium">
+        <a href="#tool" class="text-text-primary hover:text-accent transition-colors">Tool</a>
+        <a href="#" class="text-text-primary hover:text-accent transition-colors">Get the Ebook</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section id="tool" class="hero-fade px-5 pt-16 pb-14 scroll-mt-20">
+    <div class="max-w-3xl mx-auto text-center">
+      <h1 class="text-3xl sm:text-5xl font-bold tracking-tight leading-tight text-glow">Know your calories in seconds</h1>
+      <p class="mt-4 text-text-secondary text-base sm:text-lg max-w-xl mx-auto">
+        Paste your ingredients and grams. Get a full macro breakdown instantly. No account. No app. Just results.
+      </p>
+
+      <div class="mt-8 max-w-2xl mx-auto">
+        <div class="relative">
+          <textarea
+            x-ref="input"
+            x-model="rawInput"
+            @paste="handlePaste"
+            rows="2"
+            placeholder="apple 16, chicken breast 110, rice 180, Almarai milk 200"
+            class="w-full resize-none rounded-xl bg-surface border-2 border-default focus-ring text-text-primary placeholder-text-secondary/60 px-5 py-4 text-base transition-all"
+          ></textarea>
+        </div>
+        <p class="mt-2 text-xs text-text-secondary text-left px-1">
+          Numbers = grams. Liquids = ml. No number? We use 100g as standard.
+        </p>
+        <button
+          @click="calculate()"
+          :disabled="loading"
+          class="btn-cta mt-4 w-full sm:w-auto px-8 py-3.5 rounded-xl bg-accent hover:bg-accent-hover text-bg font-semibold text-base transition-colors focus-ring disabled:opacity-50"
+        >
+          <span x-show="!loading">Calculate</span>
+          <span x-show="loading" x-cloak>Calculating…</span>
+        </button>
+      </div>
+
+      <p class="mt-6 text-sm text-text-secondary">
+        Used by AkhiFat30s ebook readers — 29.5kg lost in 30 weeks with this system
+      </p>
+
+      <!-- RESULTS -->
+      <div x-show="showResults" x-cloak class="mt-10 text-left">
+        <div class="flex justify-end mb-2">
+          <button
+            @click="copyTable()"
+            class="text-xs font-medium px-3 py-1.5 rounded-lg border border-accent/50 text-accent hover:bg-accent/10 transition-colors focus-ring"
+          >
+            <span x-text="copied ? 'Copied!' : 'Copy table'"></span>
+          </button>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-default">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="bg-accent/10 text-accent text-xs uppercase tracking-wide">
+                <th class="text-left font-semibold px-4 py-3">Ingredient</th>
+                <th class="text-right font-semibold px-4 py-3">Amount</th>
+                <th class="text-right font-semibold px-4 py-3">Calories</th>
+                <th class="text-right font-semibold px-4 py-3">Protein (g)</th>
+                <th class="text-right font-semibold px-4 py-3">Carbs (g)</th>
+                <th class="text-right font-semibold px-4 py-3">Fat (g)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- skeleton rows while loading -->
+              <template x-if="loading">
+                <template x-for="n in skeletonCount" :key="'skel-'+n">
+                  <tr class="border-t border-default">
+                    <td class="px-4 py-3" colspan="6">
+                      <div class="h-4 w-full bg-surface skel rounded"></div>
+                    </td>
+                  </tr>
+                </template>
+              </template>
+
+              <template x-for="(item, idx) in items" :key="idx">
+                <tr
+                  class="border-t border-default"
+                  :class="item.source === 'fallback' ? 'fallback-row' : 'bg-surface'"
+                >
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center gap-1.5">
+                      <span x-text="item.name"></span>
+                      <span
+                        x-show="item.source === 'fallback'"
+                        class="cursor-help text-warn"
+                        :title="'Exact product not found. Showing generic ' + item.name + ' instead.'"
+                      >⚠</span>
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-right text-text-secondary" x-text="item.amount + item.unit"></td>
+                  <td class="px-4 py-3 text-right" x-text="item.calories.toFixed(1)"></td>
+                  <td class="px-4 py-3 text-right" x-text="item.protein.toFixed(1)"></td>
+                  <td class="px-4 py-3 text-right" x-text="item.carbs.toFixed(1)"></td>
+                  <td class="px-4 py-3 text-right" x-text="item.fat.toFixed(1)"></td>
+                </tr>
+              </template>
+
+              <tr x-show="!loading && items.length" class="border-t border-default bg-accent/5 font-bold">
+                <td class="px-4 py-3" colspan="2">Total</td>
+                <td class="px-4 py-3 text-right text-accent" x-text="totals.calories.toFixed(1)"></td>
+                <td class="px-4 py-3 text-right" x-text="totals.protein.toFixed(1)"></td>
+                <td class="px-4 py-3 text-right" x-text="totals.carbs.toFixed(1)"></td>
+                <td class="px-4 py-3 text-right" x-text="totals.fat.toFixed(1)"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="bg-surface border-t border-b border-default px-5 py-16">
+    <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-6 text-center sm:text-left">
+      <div>
+        <div class="text-3xl font-bold text-accent mb-2">1</div>
+        <div class="font-semibold mb-1">Weigh it</div>
+        <div class="text-sm text-text-secondary">Use a kitchen scale on each ingredient</div>
+      </div>
+      <div>
+        <div class="text-3xl font-bold text-accent mb-2">2</div>
+        <div class="font-semibold mb-1">Say it</div>
+        <div class="text-sm text-text-secondary">Voice-transcribe or type: apple 16, chicken 110, rice 180</div>
+      </div>
+      <div>
+        <div class="text-3xl font-bold text-accent mb-2">3</div>
+        <div class="font-semibold mb-1">Know it</div>
+        <div class="text-sm text-text-secondary">Paste below. Your full macro table appears instantly</div>
+      </div>
+    </div>
+  </section>
+
+  <!--
+    AD SLOT (Google AdSense) — placeholder.
+    Once you have an AdSense publisher ID:
+    1. Add this once in <head>, before </head>:
+       <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-YOUR_PUBLISHER_ID" crossorigin="anonymous"></script>
+    2. Replace this div with your ad unit snippet from the AdSense dashboard
+       (it will look like <ins class="adsbygoogle" data-ad-client="ca-pub-..." data-ad-slot="..." ...></ins> + a small inline script).
+    3. In AdSense → Settings → Blocking controls, block "Gambling", "Dating", "Alcohol" categories to keep ad content halal-appropriate.
+  -->
+  <section class="px-5 py-10">
+    <div class="max-w-4xl mx-auto text-center text-xs text-text-secondary/60">
+      Ad space
+    </div>
+  </section>
+
+  <!-- EBOOK CTA -->
+  <section class="px-5 py-16">
+    <div class="max-w-2xl mx-auto text-center">
+      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Want the full 30-week system?</h2>
+      <p class="mt-3 text-text-secondary">
+        AkhiFat30s is Faaris's own record of losing 30kg in 30 weeks at 30 years old — a Muslim brother sharing the exact data system he built, no hype, just the numbers. The ebook includes this tool, the full calorie method, the gym programme, and a 30-week progress planner.
+      </p>
+      <a href="#" class="btn-cta btn-cta-pulse inline-block mt-6 px-8 py-3.5 rounded-xl bg-accent hover:bg-accent-hover text-bg font-semibold transition-colors focus-ring">
+        Get the Ebook
+      </a>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="px-5 py-8 border-t border-default">
+    <div class="max-w-5xl mx-auto text-center text-xs text-text-secondary space-y-1">
+      <p>Food data from Open Food Facts (openfoodfacts.org) — Open Database License</p>
+      <p>Built by AkhiFat30s — 29.5kg lost in 30 weeks</p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+function calorieTool() {
+  return {
+    rawInput: '',
+    items: [],
+    totals: { calories: 0, protein: 0, carbs: 0, fat: 0 },
+    loading: false,
+    showResults: false,
+    copied: false,
+    skeletonCount: 3,
+
+    init() {},
+
+    handlePaste(e) {
+      setTimeout(() => this.calculate(), 0);
+    },
+
+    parseInput() {
+      return this.rawInput
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(s => {
+          const match = s.match(/^(.*\S)\s+(\d+(?:\.\d+)?)$/);
+          if (match) return { name: match[1].trim(), amount: match[2] };
+          return { name: s, amount: '100' };
+        });
+    },
+
+    async calculate() {
+      const parsed = this.parseInput();
+      if (!parsed.length) return;
+
+      this.loading = true;
+      this.showResults = true;
+      this.items = [];
+      this.skeletonCount = parsed.length;
+
+      const foods = parsed.map(p => `${p.name.replace(/\s+/g, '_')}_${p.amount}`).join(',');
+
+      try {
+        const res = await fetch(`/api/calc?foods=${encodeURIComponent(foods)}`);
+        const data = await res.json();
+        this.items = data.items || [];
+        this.totals = data.totals || { calories: 0, protein: 0, carbs: 0, fat: 0 };
+      } catch (err) {
+        console.error('Calorie lookup failed', err);
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    copyTable() {
+      const header = ['Ingredient', 'Amount', 'Calories', 'Protein (g)', 'Carbs (g)', 'Fat (g)'].join('\t');
+      const rows = this.items.map(i =>
+        [i.name, i.amount + i.unit, i.calories.toFixed(1), i.protein.toFixed(1), i.carbs.toFixed(1), i.fat.toFixed(1)].join('\t')
+      );
+      const totalRow = ['Total', '', this.totals.calories.toFixed(1), this.totals.protein.toFixed(1), this.totals.carbs.toFixed(1), this.totals.fat.toFixed(1)].join('\t');
+      const text = [header, ...rows, totalRow].join('\n');
+
+      navigator.clipboard.writeText(text).then(() => {
+        this.copied = true;
+        setTimeout(() => { this.copied = false; }, 1500);
+      });
+    },
+  }
+}
+</script>
+
+</body>
+</html>
