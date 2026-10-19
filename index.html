@@ -146,7 +146,7 @@
         </div>
         <p x-show="isListening" x-cloak class="mt-2 text-xs text-warn flex items-center justify-center gap-1.5">
           <span class="inline-block w-1.5 h-1.5 rounded-full bg-warn skel"></span>
-          Listening... speak your ingredients
+          <span x-text="isMobile ? 'Recording... speak all ingredients then tap the mic to stop' : 'Listening... speak your ingredients'"></span>
         </p>
         <p class="mt-2 text-xs text-text-secondary text-left px-1">
           Numbers = grams. Liquids = ml. No number? We use 100g as standard.
@@ -371,6 +371,11 @@
 </div>
 
 <script>
+const UNIT_WORDS = new Set([
+  'g', 'kg', 'ml', 'l', 'gram', 'grams', 'milligrams', 'milliliters',
+  'millilitres', 'liters', 'litres', 'ounce', 'ounces', 'oz', 'cup', 'cups', 'tbsp', 'tsp',
+]);
+
 function calorieTool() {
   return {
     rawInput: '',
@@ -395,6 +400,7 @@ function calorieTool() {
     ],
     micSupported: false,
     isListening: false,
+    isMobile: false,
     recognition: null,
     voiceBaseText: '',
     voiceFinalText: '',
@@ -403,10 +409,11 @@ function calorieTool() {
       const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SR) return;
 
+      this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
       this.micSupported = true;
       this.recognition = new SR();
-      this.recognition.continuous = true;
-      this.recognition.interimResults = true;
+      this.recognition.continuous = !this.isMobile;
+      this.recognition.interimResults = !this.isMobile;
       this.recognition.lang = navigator.language || 'en-US';
 
       this.recognition.onresult = (event) => {
@@ -450,7 +457,11 @@ function calorieTool() {
     },
 
     parseInput() {
-      return this.rawInput
+      const normalized = this.rawInput.replace(/(\d+(?:\.\d+)?)\s+([a-zA-Z]+)/g, (match, num, word) => {
+        return UNIT_WORDS.has(word.toLowerCase()) ? match : `${num}, ${word}`;
+      });
+
+      return normalized
         .split(',')
         .map(s => s.trim())
         .filter(Boolean)
