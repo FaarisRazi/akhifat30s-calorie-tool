@@ -63,16 +63,34 @@
     0%, 100% { transform: scaleY(0.35); }
     50% { transform: scaleY(1); }
   }
-  .meter-bar { animation: meter-bar 900ms ease-in-out infinite; transform-origin: center; }
+  .meter-bar { animation: meter-bar 900ms ease-in-out infinite; transform-origin: center; filter: drop-shadow(0 0 3px rgba(245, 166, 35, 0.7)); }
   .meter-bar:nth-child(1) { animation-delay: 0ms; }
   .meter-bar:nth-child(2) { animation-delay: 150ms; }
   .meter-bar:nth-child(3) { animation-delay: 300ms; }
   .meter-bar:nth-child(4) { animation-delay: 450ms; }
 
+  /* Soft glow behind the live recording controls — the one "shine" moment on
+     the page, and it only exists while the mic is actually capturing audio,
+     same rule as the meter: motion/glow that explains a live state, not decoration. */
+  @keyframes rec-glow {
+    0%, 100% { opacity: 0.35; transform: scale(0.9); }
+    50% { opacity: 0.65; transform: scale(1.08); }
+  }
+  .rec-glow {
+    position: absolute;
+    inset: -16px;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(245, 166, 35, 0.5), transparent 70%);
+    filter: blur(12px);
+    animation: rec-glow 1.8s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+  }
+
   .btn-press:active { transform: scale(0.97); }
 
   @media (prefers-reduced-motion: reduce) {
-    .skel, .meter-bar, .fade-rise { animation: none; }
+    .skel, .meter-bar, .fade-rise, .rec-glow { animation: none; }
   }
 </style>
 </head>
@@ -118,10 +136,16 @@
           <button
             x-show="micSupported && !isListening"
             x-cloak
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-75"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-75"
             @click="toggleVoice()"
             :disabled="micLoading"
             aria-label="Start voice input"
-            class="btn-press absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full text-accent hover:bg-raised transition-colors focus-ring disabled:opacity-40 disabled:cursor-wait"
+            class="btn-press absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full text-accent hover:bg-raised hover:shadow-[0_0_0_1px_rgba(245,166,35,0.35),0_0_14px_rgba(245,166,35,0.3)] transition-colors focus-ring disabled:opacity-40 disabled:cursor-wait"
           >
             <svg viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="9" y="2" width="6" height="12" rx="3"/>
@@ -132,12 +156,23 @@
           </button>
 
           <!-- recording: Stop (keep text to review) and Submit (send as-is) -->
-          <div x-show="isListening" x-cloak class="absolute top-3 right-3 flex items-center gap-1.5">
+          <div
+            x-show="isListening"
+            x-cloak
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-75"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-75"
+            class="absolute top-3 right-3 flex items-center gap-1.5"
+          >
+            <span class="rec-glow" aria-hidden="true"></span>
             <button
               @click="stopVoiceOnly()"
               aria-label="Stop recording and review the text"
               title="Stop and review"
-              class="btn-press w-9 h-9 flex items-center justify-center rounded-full bg-raised border border-hairline text-text-primary hover:border-text-secondary/40 transition-colors focus-ring"
+              class="btn-press relative w-9 h-9 flex items-center justify-center rounded-full bg-raised border border-hairline text-text-primary hover:border-text-secondary/40 transition-colors focus-ring"
             >
               <svg viewBox="0 0 24 24" class="w-[15px] h-[15px]" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
             </button>
@@ -145,7 +180,7 @@
               @click="submitVoice()"
               aria-label="Submit now, as recorded"
               title="Submit now"
-              class="btn-press w-9 h-9 flex items-center justify-center rounded-full bg-accent hover:bg-accent-hover text-bg transition-colors focus-ring"
+              class="btn-press relative w-9 h-9 flex items-center justify-center rounded-full bg-accent hover:bg-accent-hover text-bg shadow-[0_0_0_1px_rgba(245,166,35,0.5),0_0_16px_rgba(245,166,35,0.55)] transition-colors focus-ring"
             >
               <svg viewBox="0 0 24 24" class="w-[16px] h-[16px]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
             </button>
@@ -154,7 +189,7 @@
 
         <div class="mt-2.5 min-h-[20px] flex items-center justify-center">
           <p x-show="micLoading" x-cloak class="text-xs text-text-muted">Loading voice model (first time only)…</p>
-          <p x-show="isListening" x-cloak class="flex items-center justify-center gap-2 text-xs text-accent">
+          <p x-show="isListening && !micError" x-cloak class="flex items-center justify-center gap-2 text-xs text-accent">
             <span class="flex items-end gap-[3px] h-3" aria-hidden="true">
               <span class="meter-bar w-[3px] h-full bg-accent rounded-full"></span>
               <span class="meter-bar w-[3px] h-full bg-accent rounded-full"></span>
@@ -164,6 +199,16 @@
             <span x-text="isMobile ? 'Listening — stop or submit when you\'re done' : 'Listening — speak your ingredients'"></span>
           </p>
         </div>
+
+        <p
+          x-show="micError"
+          x-cloak
+          x-transition:enter="transition ease-out duration-200"
+          x-transition:enter-start="opacity-0 -translate-y-1"
+          x-transition:enter-end="opacity-100 translate-y-0"
+          class="mt-2 text-xs text-text-primary bg-raised border border-accent/30 rounded-md px-3 py-2 text-center"
+          x-text="micError"
+        ></p>
 
         <p class="mt-1 text-xs text-text-muted text-left px-1">
           Numbers = grams. Liquids = ml. No number? We use 100g as standard.
@@ -477,6 +522,9 @@ function calorieTool() {
     mic: null,
     micLoaded: false,
     micLoading: false,
+    micError: '',
+    heardSomething: false,
+    silenceTimer: null,
     voiceBaseText: '',
 
     init() {
@@ -490,25 +538,46 @@ function calorieTool() {
       this.micSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof WebAssembly !== 'undefined' && window.crossOriginIsolated === true;
     },
 
-    async buildMic() {
-      // Moonshine Voice (moonshine.ai) — on-device speech-to-text, MIT licensed.
-      // Runs entirely in the browser (WASM): no audio leaves the device, no API key.
-      const { MicTranscriber, ModelArch } = await import('https://cdn.jsdelivr.net/npm/@moonshine-ai/moonshine-wasm/dist/index.js');
-      const mic = new MicTranscriber()
+    newMicInstance(MicTranscriber, ModelArch) {
+      return new MicTranscriber()
         .modelArch(ModelArch.SmallStreaming)
         .onText((text) => {
+          this.heardSomething = true;
           this.rawInput = (this.voiceBaseText + text).trim();
         })
         .onLine((line) => {
+          this.heardSomething = true;
           this.voiceBaseText = this.voiceBaseText + line.text + ' ';
           this.rawInput = this.voiceBaseText.trim();
         })
         .onError((err) => {
           console.error('Voice input error:', err);
+          this.micError = 'The mic stopped unexpectedly. Tap it to try again.';
           this.isListening = false;
+          clearTimeout(this.silenceTimer);
         });
-      await mic.load();
-      return mic;
+    },
+
+    async buildMic() {
+      // Moonshine Voice (moonshine.ai) — on-device speech-to-text, MIT licensed.
+      // Runs entirely in the browser (WASM): no audio leaves the device, no API key.
+      const { MicTranscriber, ModelArch } = await import('https://cdn.jsdelivr.net/npm/@moonshine-ai/moonshine-wasm/dist/index.js');
+      let mic = this.newMicInstance(MicTranscriber, ModelArch);
+
+      // The model's first download occasionally hits a transient browser
+      // Cache Storage write error (seen in the wild as "Cache.put() encountered
+      // a network error") even though the file itself downloaded fine. One
+      // retry on a fresh instance clears it without bothering the user.
+      try {
+        await mic.load();
+        return mic;
+      } catch (err) {
+        console.warn('Voice model load failed once, retrying:', err);
+        try { mic.close?.(); } catch (_) { /* best effort */ }
+        mic = this.newMicInstance(MicTranscriber, ModelArch);
+        await mic.load();
+        return mic;
+      }
     },
 
     async ensureMicReady() {
@@ -520,6 +589,7 @@ function calorieTool() {
         return true;
       } catch (err) {
         console.error('Voice model failed to load:', err);
+        this.micError = "Couldn't load the voice model — check your connection and try again.";
         return false;
       } finally {
         this.micLoading = false;
@@ -532,26 +602,42 @@ function calorieTool() {
         return;
       }
 
+      this.micError = '';
+      this.heardSomething = false;
       this.voiceBaseText = this.rawInput.trim() ? this.rawInput.trim() + ', ' : '';
       if (!(await this.ensureMicReady())) return;
 
       try {
         await this.mic.start();
         this.isListening = true;
+        // If nothing's been transcribed a few seconds in, the mic is very
+        // likely open but silent (wrong default input device, muted, or
+        // permission quietly withheld) -- surface it instead of staying quiet.
+        clearTimeout(this.silenceTimer);
+        this.silenceTimer = setTimeout(() => {
+          if (this.isListening && !this.heardSomething) {
+            this.micError = "Not hearing anything — check the right microphone is selected and unmuted.";
+          }
+        }, 6000);
       } catch (err) {
         console.error('Mic start failed:', err);
+        this.micError = err?.name === 'NotAllowedError'
+          ? "Microphone access was blocked. Allow it in your browser's site settings and try again."
+          : "Couldn't start the microphone. Try again.";
         this.isListening = false;
       }
     },
 
     // Stop recording, leave whatever was transcribed in the box to review.
     async stopVoiceOnly() {
+      clearTimeout(this.silenceTimer);
       this.isListening = false;
       await this.mic?.stop();
     },
 
     // Stop recording and send it straight to calculate(), no review step.
     async submitVoice() {
+      clearTimeout(this.silenceTimer);
       this.isListening = false;
       await this.mic?.stop();
       this.calculate();
