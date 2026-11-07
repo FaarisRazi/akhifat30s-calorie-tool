@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AkhiFat30s Calorie Tool — Know your calories in seconds</title>
-<meta name="description" content="Paste your ingredients and grams, get a full macro breakdown instantly. Free calorie and macro calculator from AkhiFat30s — no account, no app.">
-<meta name="theme-color" content="#0D0F1A">
+<title>AkhiFat30s Calorie Tool — Say it, know your calories</title>
+<meta name="description" content="Speak your ingredients and the grams, get calories, protein, carbs and fat back right away. Free voice-first calorie and macro calculator from AkhiFat30s — no account, no app.">
+<meta name="theme-color" content="#0b0d14">
 <meta property="og:type" content="website">
-<meta property="og:title" content="AkhiFat30s Calorie Tool — Know your calories in seconds">
-<meta property="og:description" content="Paste your ingredients and grams, get a full macro breakdown instantly. Free calorie and macro calculator from AkhiFat30s.">
+<meta property="og:title" content="AkhiFat30s Calorie Tool — Say it, know your calories">
+<meta property="og:description" content="Speak your ingredients and the grams, get calories, protein, carbs and fat back right away.">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="AkhiFat30s Calorie Tool">
-<meta name="twitter:description" content="Paste your ingredients and grams, get a full macro breakdown instantly.">
+<meta name="twitter:description" content="Speak your ingredients and the grams, get calories, protein, carbs and fat back right away.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.tailwindcss.com"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
 <script>
@@ -22,214 +22,282 @@
     theme: {
       extend: {
         colors: {
-          bg: '#0D0F1A',
-          surface: '#13162A',
-          accent: '#F5C518',
-          'accent-hover': '#E0B010',
-          'text-primary': '#F0EDE8',
-          'text-secondary': '#8B8FA8',
-          success: '#22C55E',
-          warn: '#EF4444',
+          bg: '#0b0d14',
+          surface: '#141726',
+          raised: '#1a1e30',
+          accent: '#f5a623',
+          'accent-hover': '#e0921a',
+          'text-primary': '#eef0f5',
+          'text-secondary': '#a3a9b8',
+          'text-muted': '#7a8296',
+          positive: '#4cc38a',
+          hairline: 'rgba(238,240,245,0.08)',
         },
         fontFamily: {
-          sans: ['Inter', 'ui-sans-serif', 'system-ui'],
+          sans: ['"DM Sans"', 'ui-sans-serif', 'system-ui'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
         },
       },
     },
   }
 </script>
 <style>
-  body { background-color: #0D0F1A; color: #F0EDE8; }
-  .border-default { border-color: rgba(245, 197, 24, 0.12); }
-  .border-active { border-color: rgba(245, 197, 24, 0.5); }
-  .fallback-row { background-color: rgba(239, 68, 68, 0.08); }
-  ::selection { background-color: #F5C518; color: #0D0F1A; }
-  .focus-ring:focus { outline: none; border-color: rgba(245, 197, 24, 0.5); box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.15); }
-  .hero-fade { background: radial-gradient(ellipse 80% 55% at 50% -10%, rgba(245, 197, 24, 0.16), transparent 75%); }
-  @keyframes pulse-skel { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
-  .skel { animation: pulse-skel 1.4s ease-in-out infinite; }
+  body { background-color: #0b0d14; color: #eef0f5; }
   [x-cloak] { display: none !important; }
+  ::selection { background-color: #f5a623; color: #0b0d14; }
 
-  .ambient-bg {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(55% 45% at 18% 12%, rgba(245, 197, 24, 0.20), transparent 68%),
-      radial-gradient(50% 40% at 85% 70%, rgba(245, 197, 24, 0.14), transparent 70%);
-    background-size: 160% 160%, 160% 160%;
-    filter: blur(55px);
-    animation: ambient-drift 24s ease-in-out infinite alternate;
+  .focus-ring:focus-visible { outline: none; box-shadow: 0 0 0 2px #0b0d14, 0 0 0 4px rgba(245, 166, 35, 0.55); }
+
+  .num { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  /* Loading skeleton: a real "not ready yet" state, not decoration. */
+  @keyframes skel-pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.7; } }
+  .skel { animation: skel-pulse 1.3s ease-in-out infinite; }
+
+  /* One-shot entrance for content that just arrived. Opacity + transform only. */
+  @keyframes fade-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-rise { animation: fade-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+  /* Live recording meter — only ever runs while the mic is actually capturing audio. */
+  @keyframes meter-bar {
+    0%, 100% { transform: scaleY(0.35); }
+    50% { transform: scaleY(1); }
   }
-  @keyframes ambient-drift {
-    0%   { background-position: 0% 0%, 100% 100%; }
-    100% { background-position: 26% 20%, 74% 80%; }
-  }
+  .meter-bar { animation: meter-bar 900ms ease-in-out infinite; transform-origin: center; }
+  .meter-bar:nth-child(1) { animation-delay: 0ms; }
+  .meter-bar:nth-child(2) { animation-delay: 150ms; }
+  .meter-bar:nth-child(3) { animation-delay: 300ms; }
+  .meter-bar:nth-child(4) { animation-delay: 450ms; }
 
-  .text-glow { text-shadow: 0 0 20px rgba(245, 197, 24, 0.35), 0 0 48px rgba(245, 197, 24, 0.15); }
-
-  .btn-cta {
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 20px rgba(0, 0, 0, 0.25), 0 0 28px rgba(245, 197, 24, 0.28);
-    transition: box-shadow 0.2s ease, background-color 0.2s ease;
-  }
-  .btn-cta:hover { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.3), 0 0 38px rgba(245, 197, 24, 0.42); }
-
-  .btn-cta-pulse { animation: cta-breathe 3.2s ease-in-out infinite; }
-  @keyframes cta-breathe {
-    0%, 100% { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 24px rgba(0, 0, 0, 0.3), 0 0 26px rgba(245, 197, 24, 0.3); }
-    50%      { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 10px 28px rgba(0, 0, 0, 0.35), 0 0 48px rgba(245, 197, 24, 0.58); }
-  }
-
-  @keyframes mic-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
-  .mic-listening { animation: mic-pulse 1.2s ease-in-out infinite; }
+  .btn-press:active { transform: scale(0.97); }
 
   @media (prefers-reduced-motion: reduce) {
-    .ambient-bg, .btn-cta-pulse, .mic-listening { animation: none; }
+    .skel, .meter-bar, .fade-rise { animation: none; }
   }
 </style>
 </head>
-<body class="font-sans antialiased relative">
+<body class="font-sans antialiased">
 
-<div class="ambient-bg"></div>
-
-<div x-data="calorieTool()" x-init="init()" class="relative z-10">
+<div x-data="calorieTool()" x-init="init()">
 
   <!-- HEADER -->
-  <header class="sticky top-0 z-50 backdrop-blur bg-surface/80 border-b border-default">
-    <div class="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
-      <div>
-        <div class="text-lg font-bold text-accent tracking-tight text-glow">AkhiFat30s</div>
-        <div class="text-xs text-text-secondary hidden sm:block">Track what you eat. Lose what you don't need.</div>
+  <header class="sticky top-0 z-50 backdrop-blur bg-bg/90 border-b border-hairline">
+    <div class="max-w-5xl mx-auto px-5 h-16 flex items-center justify-between">
+      <div class="flex items-baseline gap-2.5">
+        <span class="text-base font-medium tracking-tight">AkhiFat30s</span>
+        <span class="text-xs text-text-muted hidden sm:inline">Calorie tool</span>
       </div>
-      <nav class="flex items-center gap-6 text-sm font-medium">
-        <a href="#tool" class="text-text-primary hover:text-accent transition-colors">Tool</a>
-        <button @click="pricingOpen = true" class="text-text-primary hover:text-accent transition-colors focus-ring rounded">Pricing</button>
-        <a href="#" class="text-text-primary hover:text-accent transition-colors">Get the Ebook</a>
+      <nav class="flex items-center gap-5 text-sm">
+        <a href="#tool" class="text-text-secondary hover:text-text-primary transition-colors focus-ring rounded">Tool</a>
+        <button @click="pricingOpen = true" class="text-text-secondary hover:text-text-primary transition-colors focus-ring rounded">Pricing</button>
+        <a href="#" class="px-3.5 h-9 flex items-center rounded-lg bg-raised border border-hairline text-text-primary hover:border-accent/40 transition-colors focus-ring btn-press">Get the ebook</a>
       </nav>
     </div>
   </header>
 
   <!-- HERO -->
-  <section id="tool" class="hero-fade px-5 pt-16 pb-14 scroll-mt-20">
-    <div class="max-w-3xl mx-auto text-center">
-      <h1 class="text-3xl sm:text-5xl font-bold tracking-tight leading-tight text-glow">Know your calories in seconds</h1>
-      <p class="mt-4 text-text-secondary text-base sm:text-lg max-w-xl mx-auto">
-        Paste your ingredients and grams. Get a full macro breakdown instantly. No account. No app. Just results.
+  <section id="tool" class="px-5 pt-16 sm:pt-20 pb-16 scroll-mt-16">
+    <div class="max-w-2xl mx-auto text-center">
+      <h1 class="fade-rise text-4xl sm:text-6xl font-medium tracking-tight leading-[1.05] [animation-delay:40ms]">Say it. Know it.</h1>
+      <p class="fade-rise mt-4 text-text-secondary text-lg max-w-md mx-auto [animation-delay:80ms]">
+        Speak your ingredients and the grams. Calories, protein, carbs and fat come back right away — no form to fill in.
       </p>
 
-      <div class="mt-8 max-w-2xl mx-auto">
+      <div class="fade-rise mt-9 [animation-delay:120ms]">
         <div class="relative">
           <textarea
             x-ref="input"
             x-model="rawInput"
             @paste="handlePaste"
             rows="2"
-            placeholder="apple 16, chicken breast 110, rice 180, Almarai milk 200"
-            class="w-full resize-none rounded-xl bg-surface border-2 border-default focus-ring text-text-primary placeholder-text-secondary/60 px-5 py-4 pr-14 text-base transition-all"
+            placeholder="Say it, or type: apple 150, chicken breast 180, rice 150"
+            class="w-full resize-none rounded-lg bg-surface border border-hairline focus-ring text-text-primary placeholder-text-muted px-5 py-4 pr-16 text-base transition-colors"
           ></textarea>
+
+          <!-- idle: single mic button, starts listening -->
           <button
-            x-show="micSupported"
+            x-show="micSupported && !isListening"
             x-cloak
             @click="toggleVoice()"
             :disabled="micLoading"
-            :aria-label="isListening ? 'Stop voice input' : 'Start voice input'"
-            class="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full transition-all focus-ring disabled:opacity-50 disabled:cursor-wait"
-            :class="isListening ? 'bg-warn text-white mic-listening' : 'text-accent hover:bg-accent/10'"
+            aria-label="Start voice input"
+            class="btn-press absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full text-accent hover:bg-raised transition-colors focus-ring disabled:opacity-40 disabled:cursor-wait"
           >
-            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" class="w-[18px] h-[18px]" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="9" y="2" width="6" height="12" rx="3"/>
               <path d="M5 10a7 7 0 0 0 14 0"/>
               <path d="M12 19v3"/>
               <path d="M8 22h8"/>
             </svg>
           </button>
+
+          <!-- recording: Stop (keep text to review) and Submit (send as-is) -->
+          <div x-show="isListening" x-cloak class="absolute top-3 right-3 flex items-center gap-1.5">
+            <button
+              @click="stopVoiceOnly()"
+              aria-label="Stop recording and review the text"
+              title="Stop and review"
+              class="btn-press w-9 h-9 flex items-center justify-center rounded-full bg-raised border border-hairline text-text-primary hover:border-text-secondary/40 transition-colors focus-ring"
+            >
+              <svg viewBox="0 0 24 24" class="w-[15px] h-[15px]" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+            </button>
+            <button
+              @click="submitVoice()"
+              aria-label="Submit now, as recorded"
+              title="Submit now"
+              class="btn-press w-9 h-9 flex items-center justify-center rounded-full bg-accent hover:bg-accent-hover text-bg transition-colors focus-ring"
+            >
+              <svg viewBox="0 0 24 24" class="w-[16px] h-[16px]" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </button>
+          </div>
         </div>
-        <p x-show="isListening || micLoading" x-cloak class="mt-2 text-xs text-warn flex items-center justify-center gap-1.5">
-          <span class="inline-block w-1.5 h-1.5 rounded-full bg-warn skel"></span>
-          <span x-text="micLoading ? 'Loading voice model (first time only)…' : (isMobile ? 'Recording... speak all ingredients then tap the mic to stop' : 'Listening... speak your ingredients')"></span>
-        </p>
-        <p class="mt-2 text-xs text-text-secondary text-left px-1">
+
+        <div class="mt-2.5 min-h-[20px] flex items-center justify-center">
+          <p x-show="micLoading" x-cloak class="text-xs text-text-muted">Loading voice model (first time only)…</p>
+          <p x-show="isListening" x-cloak class="flex items-center justify-center gap-2 text-xs text-accent">
+            <span class="flex items-end gap-[3px] h-3" aria-hidden="true">
+              <span class="meter-bar w-[3px] h-full bg-accent rounded-full"></span>
+              <span class="meter-bar w-[3px] h-full bg-accent rounded-full"></span>
+              <span class="meter-bar w-[3px] h-full bg-accent rounded-full"></span>
+              <span class="meter-bar w-[3px] h-full bg-accent rounded-full"></span>
+            </span>
+            <span x-text="isMobile ? 'Listening — stop or submit when you\'re done' : 'Listening — speak your ingredients'"></span>
+          </p>
+        </div>
+
+        <p class="mt-1 text-xs text-text-muted text-left px-1">
           Numbers = grams. Liquids = ml. No number? We use 100g as standard.
         </p>
+
         <button
           @click="calculate()"
           :disabled="loading"
-          class="btn-cta mt-4 w-full sm:w-auto px-8 py-3.5 rounded-xl bg-accent hover:bg-accent-hover text-bg font-semibold text-base transition-colors focus-ring disabled:opacity-50"
+          class="btn-press mt-4 w-full sm:w-auto px-7 h-11 rounded-lg bg-accent hover:bg-accent-hover text-bg font-medium text-sm transition-colors focus-ring disabled:opacity-50"
         >
           <span x-show="!loading">Calculate</span>
           <span x-show="loading" x-cloak>Calculating…</span>
         </button>
       </div>
 
-      <p class="mt-6 text-sm text-text-secondary">
-        Faaris manually logged every gram on a calorie app with a kitchen scale to lose 30kg in 30 weeks. This tool does that part for you.
+      <p class="fade-rise mt-7 text-sm text-text-muted max-w-md mx-auto [animation-delay:160ms]">
+        Faaris logged every gram by hand with a kitchen scale to lose 30kg in 30 weeks. This tool does that part for you.
       </p>
 
+      <!-- EXAMPLE MOMENT — shown before the first real result, honestly labelled -->
+      <div x-show="!showResults" class="mt-10 text-left">
+        <p class="text-xs text-text-muted mb-2 px-1">Example</p>
+        <div class="rounded-xl border border-hairline overflow-hidden opacity-80">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-text-muted text-xs border-b border-hairline">
+                <th class="text-left font-normal px-4 py-2.5">Ingredient</th>
+                <th class="text-right font-normal px-4 py-2.5">Amount</th>
+                <th class="text-right font-normal px-4 py-2.5">Calories</th>
+                <th class="text-right font-normal px-4 py-2.5 hidden sm:table-cell">Protein</th>
+                <th class="text-right font-normal px-4 py-2.5 hidden sm:table-cell">Carbs</th>
+                <th class="text-right font-normal px-4 py-2.5 hidden sm:table-cell">Fat</th>
+              </tr>
+            </thead>
+            <tbody class="text-text-secondary">
+              <tr class="border-b border-hairline">
+                <td class="px-4 py-2.5 text-text-primary">apple</td>
+                <td class="px-4 py-2.5 text-right num">150g</td>
+                <td class="px-4 py-2.5 text-right num">78.0</td>
+                <td class="px-4 py-2.5 text-right num hidden sm:table-cell">0.5</td>
+                <td class="px-4 py-2.5 text-right num hidden sm:table-cell">21.0</td>
+                <td class="px-4 py-2.5 text-right num hidden sm:table-cell">0.3</td>
+              </tr>
+              <tr class="border-b border-hairline">
+                <td class="px-4 py-2.5 text-text-primary">chicken breast</td>
+                <td class="px-4 py-2.5 text-right num">180g</td>
+                <td class="px-4 py-2.5 text-right num">297.0</td>
+                <td class="px-4 py-2.5 text-right num hidden sm:table-cell">55.8</td>
+                <td class="px-4 py-2.5 text-right num hidden sm:table-cell">0.0</td>
+                <td class="px-4 py-2.5 text-right num hidden sm:table-cell">6.5</td>
+              </tr>
+              <tr>
+                <td class="px-4 py-2.5 text-text-primary">rice</td>
+                <td class="px-4 py-2.5 text-right num">150g</td>
+                <td class="px-4 py-2.5 text-right num">195.0</td>
+                <td class="px-4 py-2.5 text-right num hidden sm:table-cell">4.1</td>
+                <td class="px-4 py-2.5 text-right num hidden sm:table-cell">42.0</td>
+                <td class="px-4 py-2.5 text-right num hidden sm:table-cell">0.5</td>
+              </tr>
+              <tr class="bg-raised/60">
+                <td class="px-4 py-2.5 font-medium" colspan="2">Total</td>
+                <td class="px-4 py-2.5 text-right num font-medium text-accent">570.0</td>
+                <td class="px-4 py-2.5 text-right num font-medium hidden sm:table-cell">60.3</td>
+                <td class="px-4 py-2.5 text-right num font-medium hidden sm:table-cell">63.0</td>
+                <td class="px-4 py-2.5 text-right num font-medium hidden sm:table-cell">7.2</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- RESULTS -->
-      <div x-show="showResults" x-cloak class="mt-10 text-left">
+      <div x-show="showResults" x-cloak class="fade-rise mt-10 text-left">
         <div class="flex justify-end mb-2">
           <button
             @click="copyTable()"
-            class="text-xs font-medium px-3 py-1.5 rounded-lg border border-accent/50 text-accent hover:bg-accent/10 transition-colors focus-ring"
+            class="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary px-2.5 h-8 rounded-md hover:bg-raised transition-colors focus-ring"
           >
-            <span x-text="copied ? 'Copied!' : 'Copy table'"></span>
+            <svg viewBox="0 0 24 24" class="w-[14px] h-[14px]" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+            <span x-text="copied ? 'Copied' : 'Copy table'"></span>
           </button>
         </div>
 
-        <div class="overflow-x-auto rounded-xl border border-default">
+        <div class="overflow-x-auto rounded-xl border border-hairline">
           <table class="w-full text-sm">
             <thead>
-              <tr class="bg-accent/10 text-accent text-xs uppercase tracking-wide">
-                <th class="text-left font-semibold px-4 py-3">Ingredient</th>
-                <th class="text-right font-semibold px-4 py-3">Amount</th>
-                <th class="text-right font-semibold px-4 py-3">Calories</th>
-                <th class="text-right font-semibold px-4 py-3">Protein (g)</th>
-                <th class="text-right font-semibold px-4 py-3">Carbs (g)</th>
-                <th class="text-right font-semibold px-4 py-3">Fat (g)</th>
+              <tr class="text-text-muted text-xs border-b border-hairline">
+                <th class="text-left font-normal px-4 py-3">Ingredient</th>
+                <th class="text-right font-normal px-4 py-3">Amount</th>
+                <th class="text-right font-normal px-4 py-3">Calories</th>
+                <th class="text-right font-normal px-4 py-3">Protein</th>
+                <th class="text-right font-normal px-4 py-3">Carbs</th>
+                <th class="text-right font-normal px-4 py-3">Fat</th>
               </tr>
             </thead>
             <tbody>
-              <!-- skeleton rows while loading -->
               <template x-if="loading">
                 <template x-for="n in skeletonCount" :key="'skel-'+n">
-                  <tr class="border-t border-default">
+                  <tr class="border-t border-hairline">
                     <td class="px-4 py-3" colspan="6">
-                      <div class="h-4 w-full bg-surface skel rounded"></div>
+                      <div class="h-4 w-full bg-raised skel rounded"></div>
                     </td>
                   </tr>
                 </template>
               </template>
 
               <template x-for="(item, idx) in items" :key="idx">
-                <tr
-                  class="border-t border-default"
-                  :class="item.source === 'fallback' ? 'fallback-row' : 'bg-surface'"
-                >
-                  <td class="px-4 py-3">
+                <tr class="border-t border-hairline fade-rise" :style="'animation-delay:' + (Math.min(idx, 5) * 40) + 'ms'">
+                  <td class="px-4 py-3 text-text-primary">
                     <span class="inline-flex items-center gap-1.5">
                       <span x-text="item.name"></span>
-                      <span
+                      <svg
                         x-show="item.source === 'fallback'"
-                        class="cursor-help text-warn"
-                        :title="'Exact product not found. Showing generic ' + item.name + ' instead.'"
-                      >⚠</span>
+                        viewBox="0 0 24 24"
+                        class="w-[13px] h-[13px] text-text-muted cursor-help"
+                        fill="none" stroke="currentColor" stroke-width="1.5"
+                        :title="'Exact product not found. Showing a generic ' + item.name + ' instead.'"
+                      ><circle cx="12" cy="12" r="9"/><path d="M12 8v5" stroke-linecap="round"/><circle cx="12" cy="16" r="0.5" fill="currentColor"/></svg>
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-right text-text-secondary" x-text="item.amount + item.unit"></td>
-                  <td class="px-4 py-3 text-right" x-text="item.calories.toFixed(1)"></td>
-                  <td class="px-4 py-3 text-right" x-text="item.protein.toFixed(1)"></td>
-                  <td class="px-4 py-3 text-right" x-text="item.carbs.toFixed(1)"></td>
-                  <td class="px-4 py-3 text-right" x-text="item.fat.toFixed(1)"></td>
+                  <td class="px-4 py-3 text-right text-text-secondary num" x-text="item.amount + item.unit"></td>
+                  <td class="px-4 py-3 text-right num" x-text="item.calories.toFixed(1)"></td>
+                  <td class="px-4 py-3 text-right num" x-text="item.protein.toFixed(1)"></td>
+                  <td class="px-4 py-3 text-right num" x-text="item.carbs.toFixed(1)"></td>
+                  <td class="px-4 py-3 text-right num" x-text="item.fat.toFixed(1)"></td>
                 </tr>
               </template>
 
-              <tr x-show="!loading && items.length" class="border-t border-default bg-accent/5 font-bold">
-                <td class="px-4 py-3" colspan="2">Total</td>
-                <td class="px-4 py-3 text-right text-accent" x-text="totals.calories.toFixed(1)"></td>
-                <td class="px-4 py-3 text-right" x-text="totals.protein.toFixed(1)"></td>
-                <td class="px-4 py-3 text-right" x-text="totals.carbs.toFixed(1)"></td>
-                <td class="px-4 py-3 text-right" x-text="totals.fat.toFixed(1)"></td>
+              <tr x-show="!loading && items.length" class="border-t border-hairline bg-raised/60">
+                <td class="px-4 py-3 font-medium" colspan="2">Total</td>
+                <td class="px-4 py-3 text-right num font-medium text-accent" x-text="totals.calories.toFixed(1)"></td>
+                <td class="px-4 py-3 text-right num font-medium" x-text="totals.protein.toFixed(1)"></td>
+                <td class="px-4 py-3 text-right num font-medium" x-text="totals.carbs.toFixed(1)"></td>
+                <td class="px-4 py-3 text-right num font-medium" x-text="totals.fat.toFixed(1)"></td>
               </tr>
             </tbody>
           </table>
@@ -239,22 +307,22 @@
   </section>
 
   <!-- HOW IT WORKS -->
-  <section class="bg-surface border-t border-b border-default px-5 py-16">
-    <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-6 text-center sm:text-left">
+  <section class="bg-surface border-t border-b border-hairline px-5 py-16">
+    <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8 text-center sm:text-left">
       <div>
-        <div class="text-3xl font-bold text-accent mb-2">1</div>
-        <div class="font-semibold mb-1">Weigh it</div>
+        <div class="w-7 h-7 rounded-full border border-hairline flex items-center justify-center text-xs num text-text-muted mb-3 mx-auto sm:mx-0">1</div>
+        <div class="font-medium mb-1">Weigh it</div>
         <div class="text-sm text-text-secondary">Use a kitchen scale on each ingredient</div>
       </div>
       <div>
-        <div class="text-3xl font-bold text-accent mb-2">2</div>
-        <div class="font-semibold mb-1">Say it</div>
-        <div class="text-sm text-text-secondary">Voice-transcribe or type: apple 16, chicken 110, rice 180</div>
+        <div class="w-7 h-7 rounded-full border border-hairline flex items-center justify-center text-xs num text-text-muted mb-3 mx-auto sm:mx-0">2</div>
+        <div class="font-medium mb-1">Say it</div>
+        <div class="text-sm text-text-secondary">Speak it or type it: apple 150, chicken breast 180</div>
       </div>
       <div>
-        <div class="text-3xl font-bold text-accent mb-2">3</div>
-        <div class="font-semibold mb-1">Know it</div>
-        <div class="text-sm text-text-secondary">Paste below. Your full macro table appears instantly</div>
+        <div class="w-7 h-7 rounded-full border border-hairline flex items-center justify-center text-xs num text-text-muted mb-3 mx-auto sm:mx-0">3</div>
+        <div class="font-medium mb-1">Know it</div>
+        <div class="text-sm text-text-secondary">Your full macro table appears right away</div>
       </div>
     </div>
   </section>
@@ -270,7 +338,7 @@
     3. In AdSense → Settings → Blocking controls, block "Gambling", "Dating", "Alcohol" categories to keep ad content halal-appropriate.
 
   <section class="px-5 py-10">
-    <div class="max-w-4xl mx-auto text-center text-xs text-text-secondary/60">
+    <div class="max-w-4xl mx-auto text-center text-xs text-text-muted">
       Ad space
     </div>
   </section>
@@ -279,19 +347,19 @@
   <!-- EBOOK CTA -->
   <section class="px-5 py-16">
     <div class="max-w-2xl mx-auto text-center">
-      <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Want the full 30-week system?</h2>
+      <h2 class="text-2xl sm:text-3xl font-medium tracking-tight">Want the full 30-week system?</h2>
       <p class="mt-3 text-text-secondary">
         AkhiFat30s is Faaris's own record of losing 30kg in 30 weeks at 30 years old — a Muslim brother sharing the exact data system he built, no hype, just the numbers. The ebook includes this tool, the full calorie method, the gym programme, and a 30-week progress planner.
       </p>
-      <a href="#" class="btn-cta btn-cta-pulse inline-block mt-6 px-8 py-3.5 rounded-xl bg-accent hover:bg-accent-hover text-bg font-semibold transition-colors focus-ring">
-        Get the Ebook
+      <a href="#" class="btn-press inline-block mt-6 px-7 h-11 leading-[44px] rounded-lg bg-accent hover:bg-accent-hover text-bg font-medium text-sm transition-colors focus-ring">
+        Get the ebook
       </a>
     </div>
   </section>
 
   <!-- FOOTER -->
-  <footer class="px-5 py-8 border-t border-default">
-    <div class="max-w-5xl mx-auto text-center text-xs text-text-secondary space-y-1">
+  <footer class="px-5 py-8 border-t border-hairline">
+    <div class="max-w-5xl mx-auto text-center text-xs text-text-muted space-y-1">
       <p>Food data from Open Food Facts (openfoodfacts.org) — Open Database License</p>
       <p>Built by AkhiFat30s</p>
     </div>
@@ -313,44 +381,48 @@
 
     <div
       x-show="pricingOpen"
-      x-transition.opacity.scale.95
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 scale-[0.98]"
+      x-transition:enter-end="opacity-100 scale-100"
       role="dialog"
       aria-modal="true"
       aria-labelledby="pricing-title"
-      class="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl bg-surface border border-default p-6 sm:p-8"
+      class="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl bg-surface border border-hairline p-6 sm:p-8"
     >
       <div class="flex items-start justify-between gap-4">
         <div>
-          <h2 id="pricing-title" class="text-xl sm:text-2xl font-bold tracking-tight">Free vs Premium</h2>
+          <h2 id="pricing-title" class="text-xl font-medium tracking-tight">Free vs premium</h2>
           <p class="mt-1 text-sm text-text-secondary">What you get today, and what the ebook unlocks.</p>
         </div>
         <button
           @click="pricingOpen = false"
           aria-label="Close pricing"
-          class="shrink-0 text-text-secondary hover:text-text-primary transition-colors focus-ring rounded px-2 py-1 text-sm"
-        >Close</button>
+          class="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-text-muted hover:text-text-primary hover:bg-raised transition-colors focus-ring"
+        >
+          <svg viewBox="0 0 24 24" class="w-[16px] h-[16px]" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
       </div>
 
-      <div class="mt-6 overflow-x-auto rounded-xl border border-default">
+      <div class="mt-6 overflow-x-auto rounded-xl border border-hairline">
         <table class="w-full text-sm">
           <thead>
-            <tr class="bg-accent/10 text-accent text-xs uppercase tracking-wide">
-              <th class="text-left font-semibold px-4 py-3">Feature</th>
-              <th class="text-center font-semibold px-4 py-3">Free</th>
-              <th class="text-center font-semibold px-4 py-3">Premium</th>
+            <tr class="text-text-muted text-xs border-b border-hairline">
+              <th class="text-left font-normal px-4 py-3">Feature</th>
+              <th class="text-center font-normal px-4 py-3">Free</th>
+              <th class="text-center font-normal px-4 py-3">Premium</th>
             </tr>
           </thead>
           <tbody>
             <template x-for="(row, idx) in pricingRows" :key="idx">
-              <tr class="border-t border-default" :class="idx % 2 ? 'bg-surface' : 'bg-accent/5'">
-                <td class="px-4 py-3" x-text="row.feature"></td>
+              <tr class="border-t border-hairline">
+                <td class="px-4 py-3 text-text-secondary" x-text="row.feature"></td>
                 <td class="px-4 py-3 text-center">
-                  <svg x-show="row.free" viewBox="0 0 20 20" class="inline w-4 h-4 text-success" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 6"/></svg>
-                  <svg x-show="!row.free" viewBox="0 0 20 20" class="inline w-4 h-4 text-warn" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
+                  <svg x-show="row.free" viewBox="0 0 20 20" class="inline w-4 h-4 text-positive" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 6"/></svg>
+                  <svg x-show="!row.free" viewBox="0 0 20 20" class="inline w-4 h-4 text-text-muted" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
                 </td>
                 <td class="px-4 py-3 text-center">
-                  <svg x-show="row.premium" viewBox="0 0 20 20" class="inline w-4 h-4 text-success" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 6"/></svg>
-                  <svg x-show="!row.premium" viewBox="0 0 20 20" class="inline w-4 h-4 text-warn" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
+                  <svg x-show="row.premium" viewBox="0 0 20 20" class="inline w-4 h-4 text-positive" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5l3.5 3.5L16 6"/></svg>
+                  <svg x-show="!row.premium" viewBox="0 0 20 20" class="inline w-4 h-4 text-text-muted" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg>
                 </td>
               </tr>
             </template>
@@ -360,11 +432,11 @@
 
       <div class="mt-5 text-sm text-text-secondary space-y-2">
         <p>Ebook readers get a 30-week premium access code included with their purchase. After 30 weeks, stay on the free tier or continue on premium.</p>
-        <p class="text-text-secondary/70">Standalone premium (no ebook) is planned at $4.99/month or $29/year once the 30-week window launches — not available yet.</p>
+        <p class="text-text-muted">Standalone premium (no ebook) is planned at <span class="num">$4.99</span>/month or <span class="num">$29</span>/year once the 30-week window launches — not available yet.</p>
       </div>
 
-      <a href="#" class="btn-cta inline-block mt-6 px-6 py-3 rounded-xl bg-accent hover:bg-accent-hover text-bg font-semibold text-sm transition-colors focus-ring">
-        Get the Ebook
+      <a href="#" class="btn-press inline-block mt-6 px-6 h-10 leading-[40px] rounded-lg bg-accent hover:bg-accent-hover text-bg font-medium text-sm transition-colors focus-ring">
+        Get the ebook
       </a>
     </div>
   </div>
@@ -439,27 +511,29 @@ function calorieTool() {
       return mic;
     },
 
+    async ensureMicReady() {
+      if (this.micLoaded) return true;
+      this.micLoading = true;
+      try {
+        this.mic = await this.buildMic();
+        this.micLoaded = true;
+        return true;
+      } catch (err) {
+        console.error('Voice model failed to load:', err);
+        return false;
+      } finally {
+        this.micLoading = false;
+      }
+    },
+
     async toggleVoice() {
       if (this.isListening) {
-        this.isListening = false;
-        await this.mic?.stop();
+        await this.stopVoiceOnly();
         return;
       }
 
       this.voiceBaseText = this.rawInput.trim() ? this.rawInput.trim() + ', ' : '';
-
-      if (!this.micLoaded) {
-        this.micLoading = true;
-        try {
-          this.mic = await this.buildMic();
-          this.micLoaded = true;
-        } catch (err) {
-          console.error('Voice model failed to load:', err);
-          this.micLoading = false;
-          return;
-        }
-        this.micLoading = false;
-      }
+      if (!(await this.ensureMicReady())) return;
 
       try {
         await this.mic.start();
@@ -468,6 +542,19 @@ function calorieTool() {
         console.error('Mic start failed:', err);
         this.isListening = false;
       }
+    },
+
+    // Stop recording, leave whatever was transcribed in the box to review.
+    async stopVoiceOnly() {
+      this.isListening = false;
+      await this.mic?.stop();
+    },
+
+    // Stop recording and send it straight to calculate(), no review step.
+    async submitVoice() {
+      this.isListening = false;
+      await this.mic?.stop();
+      this.calculate();
     },
 
     handlePaste(e) {
