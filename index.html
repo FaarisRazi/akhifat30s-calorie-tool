@@ -522,6 +522,7 @@ function calorieTool() {
     mic: null,
     micLoaded: false,
     micLoading: false,
+    micReadyPromise: null,
     micError: '',
     heardSomething: false,
     silenceTimer: null,
@@ -536,6 +537,17 @@ function calorieTool() {
       // so it falls through to false there and the mic button stays hidden
       // instead of showing something that would fail after a loading spinner.
       this.micSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof WebAssembly !== 'undefined' && window.crossOriginIsolated === true;
+
+      if (this.micSupported) {
+        // Warm the model in the background (silently -- no loading text shown
+        // unless someone's actually waiting on it) so that by the time a real
+        // tap on the mic happens, mic.start() runs right after the tap instead
+        // of after a multi-second download. Mobile browsers can silently
+        // suspend audio capture that doesn't begin close enough to the
+        // original user gesture, which otherwise leaves the mic "open" but
+        // capturing nothing -- no error, just silence.
+        this.ensureMicReady(false);
+      }
     },
 
     newMicInstance(MicTranscriber, ModelArch) {
@@ -580,20 +592,31 @@ function calorieTool() {
       }
     },
 
-    async ensureMicReady() {
-      if (this.micLoaded) return true;
-      this.micLoading = true;
-      try {
-        this.mic = await this.buildMic();
-        this.micLoaded = true;
-        return true;
-      } catch (err) {
-        console.error('Voice model failed to load:', err);
-        this.micError = "Couldn't load the voice model — check your connection and try again.";
-        return false;
-      } finally {
-        this.micLoading = false;
+    // showLoading=false lets init() warm the model silently in the background;
+    // a real tap always passes true (the default) so the person waiting on it
+    // sees the status line and, if it fails, the error message.
+    ensureMicReady(showLoading = true) {
+      if (this.micLoaded) return Promise.resolve(true);
+      if (this.micReadyPromise) {
+        if (showLoading) this.micLoading = true;
+        return this.micReadyPromise;
       }
+      this.micLoading = showLoading;
+      this.micReadyPromise = (async () => {
+        try {
+          this.mic = await this.buildMic();
+          this.micLoaded = true;
+          return true;
+        } catch (err) {
+          console.error('Voice model failed to load:', err);
+          this.micError = "Couldn't load the voice model — check your connection and try again.";
+          return false;
+        } finally {
+          this.micLoading = false;
+          this.micReadyPromise = null;
+        }
+      })();
+      return this.micReadyPromise;
     },
 
     async toggleVoice() {
@@ -605,6 +628,27 @@ function calorieTool() {
       this.micError = '';
       this.heardSomething = false;
       this.voiceBaseText = this.rawInput.trim() ? this.rawInput.trim() + ', ' : '';
+
+      // Unlock the Web Audio pipeline synchronously inside this click handler.
+      // iOS Safari (and sometimes Android Chrome) only reliably grants audio
+      // capture within or very close to a real user gesture; starting it only
+      // after the model finishes downloading can land outside that window and
+      // leave the mic open but silently capturing nothing. This is the
+      // standard "silent primer" unlock trick -- creating and resuming any
+      // AudioContext inside a tap unlocks audio for the rest of the page
+      // session, not just this one instance.
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        const unlock = new AC();
+        if (unlock.state === 'suspended') {
+          // resume() can hang indefinitely rather than reject in some
+          // contexts (e.g. no real user-gesture signal) -- never let this
+          // best-effort unlock block the actual mic flow for more than a beat.
+          await Promise.race([unlock.resume(), new Promise((r) => setTimeout(r, 500))]);
+        }
+        unlock.close?.();
+      } catch (_) { /* best effort, never block on it */ }
+
       if (!(await this.ensureMicReady())) return;
 
       try {
@@ -633,6 +677,9 @@ function calorieTool() {
       clearTimeout(this.silenceTimer);
       this.isListening = false;
       await this.mic?.stop();
+      if (!this.heardSomething && !this.rawInput.trim()) {
+        this.micError = "Didn't catch any words. Check the mic icon in your browser's address bar shows it's allowed, then try again.";
+      }
     },
 
     // Stop recording and send it straight to calculate(), no review step.
@@ -640,6 +687,10 @@ function calorieTool() {
       clearTimeout(this.silenceTimer);
       this.isListening = false;
       await this.mic?.stop();
+      if (!this.heardSomething && !this.rawInput.trim()) {
+        this.micError = "Didn't catch any words to submit. Check mic permission and try again.";
+        return;
+      }
       this.calculate();
     },
 
