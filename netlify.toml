@@ -6,3 +6,14 @@
   from = "/api/calc"
   to = "/.netlify/functions/calc"
   status = 200
+
+[[headers]]
+  # Required for Moonshine Voice (on-device dictation): its default WASM build
+  # uses SharedArrayBuffer, which browsers only expose on a cross-origin
+  # isolated page. "credentialless" (not "require-corp") so the existing
+  # cross-origin assets (Google Fonts, Tailwind CDN, Alpine CDN) keep working
+  # without needing their own CORP headers — verified locally before deploying.
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Embedder-Policy = "credentialless"

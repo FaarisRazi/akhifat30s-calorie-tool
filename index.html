@@ -132,8 +132,9 @@
             x-show="micSupported"
             x-cloak
             @click="toggleVoice()"
+            :disabled="micLoading"
             :aria-label="isListening ? 'Stop voice input' : 'Start voice input'"
-            class="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full transition-all focus-ring"
+            class="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full transition-all focus-ring disabled:opacity-50 disabled:cursor-wait"
             :class="isListening ? 'bg-warn text-white mic-listening' : 'text-accent hover:bg-accent/10'"
           >
             <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -144,9 +145,9 @@
             </svg>
           </button>
         </div>
-        <p x-show="isListening" x-cloak class="mt-2 text-xs text-warn flex items-center justify-center gap-1.5">
+        <p x-show="isListening || micLoading" x-cloak class="mt-2 text-xs text-warn flex items-center justify-center gap-1.5">
           <span class="inline-block w-1.5 h-1.5 rounded-full bg-warn skel"></span>
-          <span x-text="isMobile ? 'Recording... speak all ingredients then tap the mic to stop' : 'Listening... speak your ingredients'"></span>
+          <span x-text="micLoading ? 'Loading voice model (first time only)…' : (isMobile ? 'Recording... speak all ingredients then tap the mic to stop' : 'Listening... speak your ingredients')"></span>
         </p>
         <p class="mt-2 text-xs text-text-secondary text-left px-1">
           Numbers = grams. Liquids = ml. No number? We use 100g as standard.
@@ -401,53 +402,70 @@ function calorieTool() {
     micSupported: false,
     isListening: false,
     isMobile: false,
-    recognition: null,
+    mic: null,
+    micLoaded: false,
+    micLoading: false,
     voiceBaseText: '',
-    voiceFinalText: '',
 
     init() {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SR) return;
-
       this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      this.micSupported = true;
-      this.recognition = new SR();
-      this.recognition.continuous = !this.isMobile;
-      this.recognition.interimResults = !this.isMobile;
-      this.recognition.lang = navigator.language || 'en-US';
-
-      this.recognition.onresult = (event) => {
-        let interimText = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const transcript = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            this.voiceFinalText += transcript + ' ';
-          } else {
-            interimText += transcript;
-          }
-        }
-        this.rawInput = (this.voiceBaseText + this.voiceFinalText + interimText).trim();
-      };
-
-      this.recognition.onend = () => { this.isListening = false; };
-      this.recognition.onerror = (e) => {
-        console.error('Speech recognition error:', e.error);
-        this.isListening = false;
-      };
+      // Moonshine's default build needs SharedArrayBuffer, which needs the
+      // page to be cross-origin isolated (see the COEP header in netlify.toml).
+      // window.crossOriginIsolated confirms that actually took effect in this
+      // browser — Safari doesn't support the "credentialless" COEP mode we use,
+      // so it falls through to false there and the mic button stays hidden
+      // instead of showing something that would fail after a loading spinner.
+      this.micSupported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof WebAssembly !== 'undefined' && window.crossOriginIsolated === true;
     },
 
-    toggleVoice() {
-      if (!this.recognition) return;
+    async buildMic() {
+      // Moonshine Voice (moonshine.ai) — on-device speech-to-text, MIT licensed.
+      // Runs entirely in the browser (WASM): no audio leaves the device, no API key.
+      const { MicTranscriber, ModelArch } = await import('https://cdn.jsdelivr.net/npm/@moonshine-ai/moonshine-wasm/dist/index.js');
+      const mic = new MicTranscriber()
+        .modelArch(ModelArch.SmallStreaming)
+        .onText((text) => {
+          this.rawInput = (this.voiceBaseText + text).trim();
+        })
+        .onLine((line) => {
+          this.voiceBaseText = this.voiceBaseText + line.text + ' ';
+          this.rawInput = this.voiceBaseText.trim();
+        })
+        .onError((err) => {
+          console.error('Voice input error:', err);
+          this.isListening = false;
+        });
+      await mic.load();
+      return mic;
+    },
+
+    async toggleVoice() {
       if (this.isListening) {
-        this.recognition.stop();
+        this.isListening = false;
+        await this.mic?.stop();
         return;
       }
+
       this.voiceBaseText = this.rawInput.trim() ? this.rawInput.trim() + ', ' : '';
-      this.voiceFinalText = '';
-      this.isListening = true;
+
+      if (!this.micLoaded) {
+        this.micLoading = true;
+        try {
+          this.mic = await this.buildMic();
+          this.micLoaded = true;
+        } catch (err) {
+          console.error('Voice model failed to load:', err);
+          this.micLoading = false;
+          return;
+        }
+        this.micLoading = false;
+      }
+
       try {
-        this.recognition.start();
+        await this.mic.start();
+        this.isListening = true;
       } catch (err) {
+        console.error('Mic start failed:', err);
         this.isListening = false;
       }
     },
