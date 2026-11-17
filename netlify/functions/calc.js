@@ -35,7 +35,9 @@ const LIQUID_KEYWORDS = ['milk', 'water', 'juice', 'oil', 'sauce', 'soup', 'brot
 
 function isLiquid(name) {
   const lower = name.toLowerCase();
-  return LIQUID_KEYWORDS.some(k => lower.includes(k));
+  // Word-boundary match, not substring: "steak" contains "tea" as a
+  // substring and would otherwise be misread as a liquid.
+  return LIQUID_KEYWORDS.some(k => new RegExp(`\\b${k}\\b`).test(lower));
 }
 
 function findFallback(name) {

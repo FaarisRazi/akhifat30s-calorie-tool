@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AkhiFat30s Calorie Tool — Say it, know your calories</title>
 <meta name="description" content="Speak your ingredients and the grams, get calories, protein, carbs and fat back right away. Free voice-first calorie and macro calculator from AkhiFat30s — no account, no app.">
-<meta name="theme-color" content="#0b0d14">
+<meta name="theme-color" content="#140819">
 <meta property="og:type" content="website">
 <meta property="og:title" content="AkhiFat30s Calorie Tool — Say it, know your calories">
 <meta property="og:description" content="Speak your ingredients and the grams, get calories, protein, carbs and fat back right away.">
@@ -22,16 +22,18 @@
     theme: {
       extend: {
         colors: {
-          bg: '#0b0d14',
-          surface: '#141726',
-          raised: '#1a1e30',
-          accent: '#f5a623',
-          'accent-hover': '#e0921a',
-          'text-primary': '#eef0f5',
-          'text-secondary': '#a3a9b8',
-          'text-muted': '#7a8296',
+          // Dark magenta/purple world with a gold-yellow accent -- the
+          // brand direction, replacing the earlier navy/orange placeholder.
+          bg: '#140819',
+          surface: '#1f0f29',
+          raised: '#2a1636',
+          accent: '#f0c419',
+          'accent-hover': '#d9ad0f',
+          'text-primary': '#f5eef7',
+          'text-secondary': '#b8a3c4',
+          'text-muted': '#8a7593',
           positive: '#4cc38a',
-          hairline: 'rgba(238,240,245,0.08)',
+          hairline: 'rgba(245,238,247,0.08)',
         },
         fontFamily: {
           sans: ['"DM Sans"', 'ui-sans-serif', 'system-ui'],
@@ -42,11 +44,34 @@
   }
 </script>
 <style>
-  body { background-color: #0b0d14; color: #eef0f5; }
+  body { background-color: #140819; color: #f5eef7; }
   [x-cloak] { display: none !important; }
-  ::selection { background-color: #f5a623; color: #0b0d14; }
+  ::selection { background-color: #f0c419; color: #140819; }
 
-  .focus-ring:focus-visible { outline: none; box-shadow: 0 0 0 2px #0b0d14, 0 0 0 4px rgba(245, 166, 35, 0.55); }
+  .focus-ring:focus-visible { outline: none; box-shadow: 0 0 0 2px #140819, 0 0 0 4px rgba(240, 196, 25, 0.55); }
+
+  /* The one place color moves on this page: a slow, smooth drift through the
+     brand's dark magenta/purple range, with a faint gold wash low in frame.
+     "Slightly changing" per spec, not a hue-cycling rainbow -- note the tight
+     10deg hue-rotate range and the 48s duration. Sits behind every section;
+     opaque surface/raised panels still read as solid flat chrome on top of it. */
+  .bg-aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(60% 50% at 18% 22%, rgba(176, 38, 142, 0.38), transparent 62%),
+      radial-gradient(55% 45% at 84% 12%, rgba(107, 33, 168, 0.32), transparent 60%),
+      radial-gradient(70% 55% at 50% 102%, rgba(240, 196, 25, 0.10), transparent 65%),
+      #140819;
+    background-size: 160% 160%, 160% 160%, 140% 140%, auto;
+    animation: aurora-drift 48s ease-in-out infinite;
+  }
+  @keyframes aurora-drift {
+    0%, 100% { background-position: 0% 0%, 100% 0%, 50% 100%; filter: hue-rotate(0deg); }
+    50% { background-position: 8% 12%, 92% 8%, 54% 96%; filter: hue-rotate(10deg); }
+  }
 
   .num { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
 
@@ -63,7 +88,7 @@
     0%, 100% { transform: scaleY(0.35); }
     50% { transform: scaleY(1); }
   }
-  .meter-bar { animation: meter-bar 900ms ease-in-out infinite; transform-origin: center; filter: drop-shadow(0 0 3px rgba(245, 166, 35, 0.7)); }
+  .meter-bar { animation: meter-bar 900ms ease-in-out infinite; transform-origin: center; filter: drop-shadow(0 0 3px rgba(240, 196, 25, 0.7)); }
   .meter-bar:nth-child(1) { animation-delay: 0ms; }
   .meter-bar:nth-child(2) { animation-delay: 150ms; }
   .meter-bar:nth-child(3) { animation-delay: 300ms; }
@@ -80,7 +105,7 @@
     position: absolute;
     inset: -16px;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgba(245, 166, 35, 0.5), transparent 70%);
+    background: radial-gradient(circle, rgba(240, 196, 25, 0.5), transparent 70%);
     filter: blur(12px);
     animation: rec-glow 1.8s ease-in-out infinite;
     pointer-events: none;
@@ -95,11 +120,13 @@
   .wave-bar { transform-origin: center; transform-box: fill-box; animation: wave-grow 520ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 0ms; }
 
   @media (prefers-reduced-motion: reduce) {
-    .skel, .meter-bar, .fade-rise, .rec-glow, .wave-bar { animation: none; }
+    .skel, .meter-bar, .fade-rise, .rec-glow, .wave-bar, .bg-aurora { animation: none; }
   }
 </style>
 </head>
 <body class="font-sans antialiased">
+
+<div class="bg-aurora" aria-hidden="true"></div>
 
 <div x-data="calorieTool()" x-init="init()">
 
@@ -134,8 +161,8 @@
         <svg viewBox="0 0 64 40" class="w-14 h-9 sm:w-16 sm:h-10 shrink-0" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="waveGrad" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%" stop-color="#e0472a"/>
-              <stop offset="100%" stop-color="#f5a623"/>
+              <stop offset="0%" stop-color="#b0268e"/>
+              <stop offset="100%" stop-color="#f0c419"/>
             </linearGradient>
           </defs>
           <g fill="url(#waveGrad)">
@@ -523,10 +550,61 @@
 </div>
 
 <script>
-const UNIT_WORDS = new Set([
-  'g', 'kg', 'ml', 'l', 'gram', 'grams', 'milligrams', 'milliliters',
-  'millilitres', 'liters', 'litres', 'ounce', 'ounces', 'oz', 'cup', 'cups', 'tbsp', 'tsp',
-]);
+// Every unit word/abbreviation a spoken amount might carry, mapped to how it
+// converts into the basis the backend already expects: grams for solids, ml
+// for liquids (see calc.js's own per-100g/ml lookup). "oz" is the one
+// genuinely ambiguous unit -- it's resolved per-food via LIQUID_KEYWORDS below
+// (kept in sync with the same list in netlify/functions/calc.js).
+const UNIT_INFO = {
+  g: { type: 'mass', factor: 1 }, gram: { type: 'mass', factor: 1 }, grams: { type: 'mass', factor: 1 },
+  kg: { type: 'mass', factor: 1000 }, kgs: { type: 'mass', factor: 1000 },
+  kilogram: { type: 'mass', factor: 1000 }, kilograms: { type: 'mass', factor: 1000 },
+  ml: { type: 'volume', factor: 1 }, mls: { type: 'volume', factor: 1 },
+  milliliter: { type: 'volume', factor: 1 }, milliliters: { type: 'volume', factor: 1 },
+  millilitre: { type: 'volume', factor: 1 }, millilitres: { type: 'volume', factor: 1 },
+  l: { type: 'volume', factor: 1000 }, liter: { type: 'volume', factor: 1000 }, liters: { type: 'volume', factor: 1000 },
+  litre: { type: 'volume', factor: 1000 }, litres: { type: 'volume', factor: 1000 },
+  cup: { type: 'volume', factor: 236.588 }, cups: { type: 'volume', factor: 236.588 },
+  tbsp: { type: 'volume', factor: 14.787 }, tbsps: { type: 'volume', factor: 14.787 },
+  tsp: { type: 'volume', factor: 4.929 }, tsps: { type: 'volume', factor: 4.929 },
+  oz: { type: 'oz' }, ozs: { type: 'oz' }, ounce: { type: 'oz' }, ounces: { type: 'oz' },
+};
+const UNIT_PATTERN = Object.keys(UNIT_INFO).sort((a, b) => b.length - a.length).join('|');
+const AMOUNT_RE = new RegExp(`(\\d+(?:\\.\\d+)?)\\s*(${UNIT_PATTERN})?\\b`, 'i');
+const OZ_TO_G = 28.3495;
+const OZ_TO_ML = 29.5735;
+// Same list as isLiquid() in netlify/functions/calc.js -- only used here to
+// decide which way to convert an ambiguous "oz".
+const LIQUID_KEYWORDS = ['milk', 'water', 'juice', 'oil', 'sauce', 'soup', 'broth', 'drink', 'tea', 'coffee', 'cola', 'beverage', 'yogurt', 'kefir', 'cream'];
+
+function isLiquidName(name) {
+  const lower = name.toLowerCase();
+  // Word-boundary match, not substring: "steak" contains "tea" as a
+  // substring and would otherwise be misread as a liquid.
+  return LIQUID_KEYWORDS.some(k => new RegExp(`\\b${k}\\b`).test(lower));
+}
+
+// Pulls the first "<number><optional unit>" out of a phrase, in whatever
+// order it appears ("biryani 100 grams", "200 gram biryani", "bread 30g"),
+// and returns what's left over as the food name.
+function extractAmount(text) {
+  const m = text.match(AMOUNT_RE);
+  if (!m) return { amount: null, unit: null, rest: text.trim() };
+  const rest = (text.slice(0, m.index) + text.slice(m.index + m[0].length)).trim();
+  return { amount: parseFloat(m[1]), unit: m[2] ? m[2].toLowerCase() : null, rest };
+}
+
+// Converts a spoken amount+unit into the number calc.js expects (grams for
+// solids, ml for liquids). No unit spoken ("milk 250") passes through as-is,
+// already in the right basis per the page's own "Numbers = grams. Liquids =
+// ml." convention.
+function toBaseAmount(amount, unit, foodName) {
+  if (!unit) return amount;
+  const info = UNIT_INFO[unit];
+  if (!info) return amount;
+  if (info.type === 'mass' || info.type === 'volume') return amount * info.factor;
+  return amount * (isLiquidName(foodName) ? OZ_TO_ML : OZ_TO_G);
+}
 
 function calorieTool() {
   // Kept outside Alpine's reactive state on purpose: Alpine wraps every
@@ -744,19 +822,24 @@ function calorieTool() {
     },
 
     parseInput() {
-      const normalized = this.rawInput.replace(/(\d+(?:\.\d+)?)\s+([a-zA-Z]+)/g, (match, num, word) => {
-        return UNIT_WORDS.has(word.toLowerCase()) ? match : `${num}, ${word}`;
-      });
+      // Voice transcripts punctuate with full stops as often as commas
+      // ("biryani 200. chicken 300") -- treat both as entry separators, but
+      // never split a decimal amount like "1.5 cups" apart from itself.
+      const protectedText = this.rawInput.replace(/(\d)\.(\d)/g, '$1\u0001$2');
+      const entries = protectedText
+        .split(/[,.]+/)
+        .map(s => s.replace(/\u0001/g, '.').trim())
+        .filter(Boolean);
 
-      return normalized
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean)
-        .map(s => {
-          const match = s.match(/^(.*\S)\s+(\d+(?:\.\d+)?)$/);
-          if (match) return { name: match[1].trim(), amount: match[2] };
-          return { name: s, amount: '100' };
-        });
+      return entries
+        .map(entry => {
+          const { amount, unit, rest } = extractAmount(entry);
+          const name = rest || entry;
+          if (!name) return null;
+          if (amount == null) return { name, amount: '100' };
+          return { name, amount: String(Math.round(toBaseAmount(amount, unit, name) * 100) / 100) };
+        })
+        .filter(Boolean);
     },
 
     async calculate() {
