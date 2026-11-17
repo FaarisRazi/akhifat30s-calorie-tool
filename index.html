@@ -89,8 +89,13 @@
 
   .btn-press:active { transform: scale(0.97); }
 
+  /* Hero signature visual: bars grow in once from a flat line, like a word
+     being spoken, then hold still. Transform only, one-shot, no loop. */
+  @keyframes wave-grow { from { transform: scaleY(0.18); } to { transform: scaleY(1); } }
+  .wave-bar { transform-origin: center; transform-box: fill-box; animation: wave-grow 520ms cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 0ms; }
+
   @media (prefers-reduced-motion: reduce) {
-    .skel, .meter-bar, .fade-rise, .rec-glow { animation: none; }
+    .skel, .meter-bar, .fade-rise, .rec-glow, .wave-bar { animation: none; }
   }
 </style>
 </head>
@@ -120,6 +125,35 @@
       <p class="fade-rise mt-4 text-text-secondary text-lg max-w-md mx-auto [animation-delay:80ms]">
         Speak your ingredients and the grams. Calories, protein, carbs and fat come back right away — no form to fill in.
       </p>
+
+      <!-- SIGNATURE MOMENT — the one place on this page with real color: a
+           spoken word (waveform) resolving into the four numbers the tool
+           actually returns for 180g chicken breast. One-shot reveal on load,
+           nothing after that: this isn't a live state, so it doesn't loop. -->
+      <div class="fade-rise mt-8 flex items-center justify-center gap-5 sm:gap-7 [animation-delay:100ms]" aria-hidden="true">
+        <svg viewBox="0 0 64 40" class="w-14 h-9 sm:w-16 sm:h-10 shrink-0" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="waveGrad" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stop-color="#e0472a"/>
+              <stop offset="100%" stop-color="#f5a623"/>
+            </linearGradient>
+          </defs>
+          <g fill="url(#waveGrad)">
+            <rect class="wave-bar" x="2" y="16" width="6" height="8" rx="3"/>
+            <rect class="wave-bar" x="14" y="8" width="6" height="24" rx="3" style="animation-delay:60ms"/>
+            <rect class="wave-bar" x="26" y="2" width="6" height="36" rx="3" style="animation-delay:120ms"/>
+            <rect class="wave-bar" x="38" y="10" width="6" height="20" rx="3" style="animation-delay:180ms"/>
+            <rect class="wave-bar" x="50" y="14" width="6" height="12" rx="3" style="animation-delay:240ms"/>
+          </g>
+        </svg>
+        <svg viewBox="0 0 28 16" class="w-6 h-3.5 text-text-muted shrink-0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 8h24M18 2l7 6-7 6"/></svg>
+        <dl class="flex items-center gap-4 sm:gap-5 text-left">
+          <div><dt class="text-[11px] text-text-muted leading-none">cal</dt><dd class="num text-text-primary text-sm leading-none mt-1">297</dd></div>
+          <div><dt class="text-[11px] text-text-muted leading-none">protein</dt><dd class="num text-text-secondary text-sm leading-none mt-1">55.8</dd></div>
+          <div><dt class="text-[11px] text-text-muted leading-none">carbs</dt><dd class="num text-text-secondary text-sm leading-none mt-1">0.0</dd></div>
+          <div><dt class="text-[11px] text-text-muted leading-none">fat</dt><dd class="num text-text-secondary text-sm leading-none mt-1">6.5</dd></div>
+        </dl>
+      </div>
 
       <div class="fade-rise mt-9 [animation-delay:120ms]">
         <div class="relative">
