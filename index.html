@@ -573,7 +573,11 @@ function calorieTool() {
     async buildMic() {
       // Moonshine Voice (moonshine.ai) — on-device speech-to-text, MIT licensed.
       // Runs entirely in the browser (WASM): no audio leaves the device, no API key.
-      const { MicTranscriber, ModelArch } = await import('https://cdn.jsdelivr.net/npm/@moonshine-ai/moonshine-wasm/dist/index.js');
+      // Pinned to 0.1.5: 0.1.6 throws "Expected null or instance of Transcriber,
+      // got an instance of Transcriber" from inside the library's own
+      // createStream() on every start() call, breaking dictation entirely.
+      // Verified directly against the live site before pinning.
+      const { MicTranscriber, ModelArch } = await import('https://cdn.jsdelivr.net/npm/@moonshine-ai/moonshine-wasm@0.1.5/dist/index.js');
       let mic = this.newMicInstance(MicTranscriber, ModelArch);
 
       // The model's first download occasionally hits a transient browser
