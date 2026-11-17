@@ -529,6 +529,14 @@ const UNIT_WORDS = new Set([
 ]);
 
 function calorieTool() {
+  // Kept outside Alpine's reactive state on purpose: Alpine wraps every
+  // property of the returned object in a reactivity Proxy, and that Proxy
+  // breaks moonshine-wasm's internal native-object identity check inside
+  // its WASM module -- calling start() on the proxied instance always threw
+  // "Expected null or instance of Transcriber, got an instance of
+  // Transcriber", while the exact same call on the raw instance never did.
+  // Verified directly: Alpine.raw(data.mic).start() works, data.mic.start() doesn't.
+  let mic = null;
   return {
     rawInput: '',
     items: [],
@@ -553,7 +561,6 @@ function calorieTool() {
     micSupported: false,
     isListening: false,
     isMobile: false,
-    mic: null,
     micLoaded: false,
     micLoading: false,
     micReadyPromise: null,
@@ -642,7 +649,7 @@ function calorieTool() {
       this.micLoading = showLoading;
       this.micReadyPromise = (async () => {
         try {
-          this.mic = await this.buildMic();
+          mic = await this.buildMic();
           this.micLoaded = true;
           return true;
         } catch (err) {
@@ -690,7 +697,7 @@ function calorieTool() {
       if (!(await this.ensureMicReady())) return;
 
       try {
-        await this.mic.start();
+        await mic.start();
         this.isListening = true;
         // If nothing's been transcribed a few seconds in, the mic is very
         // likely open but silent (wrong default input device, muted, or
@@ -714,7 +721,7 @@ function calorieTool() {
     async stopVoiceOnly() {
       clearTimeout(this.silenceTimer);
       this.isListening = false;
-      await this.mic?.stop();
+      await mic?.stop();
       if (!this.heardSomething && !this.rawInput.trim()) {
         this.micError = "Didn't catch any words. Check the mic icon in your browser's address bar shows it's allowed, then try again.";
       }
@@ -724,7 +731,7 @@ function calorieTool() {
     async submitVoice() {
       clearTimeout(this.silenceTimer);
       this.isListening = false;
-      await this.mic?.stop();
+      await mic?.stop();
       if (!this.heardSomething && !this.rawInput.trim()) {
         this.micError = "Didn't catch any words to submit. Check mic permission and try again.";
         return;
