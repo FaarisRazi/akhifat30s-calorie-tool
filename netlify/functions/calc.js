@@ -29,6 +29,11 @@ const FALLBACKS = {
   'pasta': { calories: 131, protein: 5, carbs: 25, fat: 1.1 },
   'broccoli': { calories: 34, protein: 2.8, carbs: 7, fat: 0.4 },
   'spinach': { calories: 23, protein: 2.9, carbs: 3.6, fat: 0.4 },
+  // Homemade dishes never show up as a single Open Food Facts product (OFF
+  // is packaged/branded foods), so they always fell through to "(unknown)",
+  // 0 calories -- the exact bug reported for "biryani". Generic chicken
+  // biryani average, varies by recipe/meat.
+  'biryani': { calories: 165, protein: 8, carbs: 20, fat: 6 },
 };
 
 const LIQUID_KEYWORDS = ['milk', 'water', 'juice', 'oil', 'sauce', 'soup', 'broth', 'drink', 'tea', 'coffee', 'cola', 'beverage', 'yogurt', 'kefir', 'cream'];
